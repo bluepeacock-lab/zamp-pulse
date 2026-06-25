@@ -313,127 +313,229 @@ function DashboardContent({
   const trendData = useMemo(() => dailyAtcr(periodTasks, rollingWindow), [periodTasks, rollingWindow]);
   const showRawDots = period !== 7;
 
+  const segments = [
+    {
+      key: "autonomous",
+      label: "Autonomous",
+      color: TEAL,
+      value: counts.completed,
+      desc: "Tasks resolved by AI end-to-end without human intervention.",
+    },
+    {
+      key: "corrected",
+      label: "Corrected",
+      color: BLUE,
+      value: counts.corrected,
+      desc: "AI output was verified or adjusted by a human before finalization.",
+    },
+    {
+      key: "escalated",
+      label: "Escalated",
+      color: AMBER,
+      value: counts.escalated,
+      desc: "Complex tasks routed to a human specialist for resolution.",
+    },
+    {
+      key: "failed",
+      label: "Failed",
+      color: RED,
+      value: counts.failed,
+      desc: "System error or task could not be processed within parameters.",
+    },
+  ];
+
   return (
-    <div className="space-y-4">
-      {/* Hero */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="text-xs uppercase tracking-wider mb-4" style={{ color: GRAY_500 }}>
-          Autonomous Task Completion Rate
+    <div className="space-y-6">
+      {/* Page header with period selector */}
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: GRAY_900 }}>
+            Zamp Observatory
+          </h1>
+          <p className="text-sm" style={{ color: GRAY_500 }}>
+            Executive performance overview
+          </p>
         </div>
-
-        <div className="flex items-baseline gap-4 mb-5">
-          <div className="text-5xl font-bold" style={{ color: colorForAtcr(atcrAll) }}>
-            {atcrAll.toFixed(1)}%
-          </div>
-          <div className="text-sm font-medium" style={{ color: trendDelta >= 0 ? GREEN : RED }}>
-            {trendDelta >= 0 ? "▲" : "▼"} {trendDelta >= 0 ? "+" : ""}
-            {trendDelta.toFixed(1)}% last 30d vs prior 30d
-          </div>
-        </div>
-
-
-        <div className="flex h-3 w-full rounded-full overflow-hidden mb-2">
-          {[
-            { v: counts.completed, c: GREEN },
-            { v: counts.escalated, c: AMBER },
-            { v: counts.corrected, c: BLUE },
-            { v: counts.failed, c: RED },
-          ].map((s, i) => (
-            <div
-              key={i}
-              style={{ width: `${total ? (s.v / total) * 100 : 0}%`, backgroundColor: s.c }}
-            />
-          ))}
-        </div>
-        <div className="text-sm" style={{ color: GRAY_500 }}>
-          Autonomous: {counts.completed} · Escalated: {counts.escalated} · Corrected: {counts.corrected} · Failed: {counts.failed} · Total: {total}
-        </div>
-      </div>
-
-      {/* Metric cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          label="Accuracy"
-          value={`${accuracy.toFixed(1)}%`}
-          sub={
-            <span>
-              <span style={{ color: accuracy30 >= accuracy ? GREEN : RED }}>
-                {accuracy30 >= accuracy ? "▲" : "▼"}
-              </span>{" "}
-              avg: {accuracy30.toFixed(1)}%
-            </span>
-          }
-        />
-        <MetricCard
-          label="Escalation Rate"
-          value={`${escalationRate.toFixed(1)}%`}
-          sub={
-            <span>
-              <span style={{ color: esc30 <= escalationRate ? GREEN : RED }}>
-                {esc30 <= escalationRate ? "▼" : "▲"}
-              </span>{" "}
-              avg: {esc30.toFixed(1)}%
-            </span>
-          }
-        />
-        <MetricCard
-          label="Avg Processing Time"
-          value={`${avgProc.toFixed(1)}s`}
-          sub={
-            speedup > 0 ? (
-              <span
-                className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
-                style={{ backgroundColor: "#CCF5EC", color: "#007F6B" }}
-              >
-                {speedup.toFixed(1)}x faster than manual
-              </span>
-            ) : null
-          }
-        />
-        <MetricCard
-          label="Coaching Impact"
-          value={`${totalCorrections} corrections`}
-          sub={
-            <div className="w-full">
-              <div className="mb-1">
-                {generalized} generalized ({genPct.toFixed(0)}%)
-              </div>
-              <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full" style={{ width: `${genPct}%`, backgroundColor: TEAL }} />
-              </div>
-            </div>
-          }
-        />
-      </div>
-
-      {/* Trend chart */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="text-sm font-semibold" style={{ color: GRAY_900 }}>
-              ATCR Trend
-            </div>
-            {showRawDots && (
-              <div className="text-xs mt-0.5" style={{ color: GRAY_500 }}>
-                7-day rolling average
-              </div>
-            )}
-          </div>
-          <div className="flex gap-1">
-            {[7, 30, 60].map((d) => (
+        <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-zinc-200 shadow-sm self-start sm:self-auto">
+          {[7, 30, 60].map((d) => {
+            const active = period === d;
+            return (
               <button
                 key={d}
                 onClick={() => setPeriod(d as 7 | 30 | 60)}
-                className="px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                className="px-3 py-1.5 rounded-md text-xs font-semibold transition-colors"
                 style={
-                  period === d
-                    ? { backgroundColor: TEAL, color: "white" }
-                    : { backgroundColor: "#F3F4F6", color: GRAY_500 }
+                  active
+                    ? { backgroundColor: "rgba(0,201,167,0.1)", color: TEAL }
+                    : { color: GRAY_500 }
                 }
               >
                 {d}d
               </button>
-            ))}
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Hero + side metrics */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ATCR Hero */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-zinc-200 shadow-sm p-8">
+          <div className="flex justify-between items-start">
+            <div>
+              <p
+                className="text-[11px] font-semibold uppercase tracking-widest mb-1"
+                style={{ color: "#9CA3AF" }}
+              >
+                Autonomous Task Completion Rate
+              </p>
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <h2
+                  className="text-5xl font-bold tracking-tighter"
+                  style={{ color: colorForAtcr(atcrAll) }}
+                >
+                  {atcrAll.toFixed(1)}%
+                </h2>
+                <span
+                  className="text-sm font-semibold"
+                  style={{ color: trendDelta >= 0 ? TEAL : RED }}
+                >
+                  {trendDelta >= 0 ? "▲ +" : "▼ "}
+                  {trendDelta.toFixed(1)}% vs prior 30d
+                </span>
+              </div>
+            </div>
+            <div
+              className="h-12 w-12 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: "rgba(0,201,167,0.08)" }}
+            >
+              <svg
+                className="w-6 h-6"
+                style={{ color: TEAL }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Stacked bar + legend + hover tooltips */}
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <span className="text-xs font-medium" style={{ color: GRAY_500 }}>
+                Outcome Distribution · {total} tasks
+              </span>
+              <div className="flex gap-4 flex-wrap">
+                {segments.map((s) => (
+                  <div key={s.key} className="flex items-center gap-1.5">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: s.color }}
+                    />
+                    <span
+                      className="text-[10px] uppercase tracking-wide"
+                      style={{ color: "#9CA3AF" }}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex h-4 w-full rounded-full overflow-visible bg-zinc-100">
+              {segments.map((s, idx) => {
+                const pct = total ? (s.value / total) * 100 : 0;
+                if (pct === 0) return null;
+                const isFirst = idx === 0;
+                const isLast = idx === segments.length - 1;
+                return (
+                  <div
+                    key={s.key}
+                    className="group relative h-full transition-all hover:brightness-110"
+                    style={{
+                      width: `${pct}%`,
+                      backgroundColor: s.color,
+                      borderTopLeftRadius: isFirst ? 9999 : 0,
+                      borderBottomLeftRadius: isFirst ? 9999 : 0,
+                      borderTopRightRadius: isLast ? 9999 : 0,
+                      borderBottomRightRadius: isLast ? 9999 : 0,
+                    }}
+                  >
+                    <div className="hidden group-hover:flex absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-52 flex-col bg-zinc-900 text-white p-3 rounded-lg shadow-xl text-[11px] z-50">
+                      <span className="font-bold mb-1">
+                        {s.label} ({pct.toFixed(1)}%)
+                      </span>
+                      <p className="text-zinc-400 leading-relaxed">{s.desc}</p>
+                      <p className="text-zinc-300 mt-1 font-medium">
+                        {s.value.toLocaleString()} tasks
+                      </p>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-zinc-900" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Side metric grid */}
+        <div className="grid grid-cols-2 gap-4">
+          <MiniMetric
+            label="Accuracy"
+            value={`${accuracy.toFixed(1)}%`}
+            delta={`${accuracy30 >= accuracy ? "▲" : "▼"} 30d: ${accuracy30.toFixed(1)}%`}
+            positive={accuracy30 >= accuracy}
+          />
+          <MiniMetric
+            label="Escalation"
+            value={`${escalationRate.toFixed(1)}%`}
+            delta={`${esc30 <= escalationRate ? "▼" : "▲"} 30d: ${esc30.toFixed(1)}%`}
+            positive={esc30 <= escalationRate}
+          />
+          <MiniMetric
+            label="Avg Processing"
+            value={`${avgProc.toFixed(1)}s`}
+            delta={speedup > 0 ? `${speedup.toFixed(1)}x vs manual` : "—"}
+            positive
+          />
+          <MiniMetric
+            label="Coaching Impact"
+            value={`${totalCorrections}`}
+            delta={`${generalized} generalized (${genPct.toFixed(0)}%)`}
+            positive
+          />
+        </div>
+      </div>
+
+      {/* Trend chart */}
+      <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <h3 className="text-sm font-semibold" style={{ color: GRAY_900 }}>
+              ATCR Trend Performance
+            </h3>
+            {showRawDots && (
+              <p className="text-xs mt-0.5" style={{ color: GRAY_500 }}>
+                7-day rolling average
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: GRAY_500 }}>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5" style={{ backgroundColor: TEAL }} />
+              ATCR
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-0.5 border-t border-dashed" style={{ borderColor: "#9CA3AF" }} />
+              90% Goal
+            </div>
           </div>
         </div>
         <div style={{ width: "100%", height: 300 }}>
@@ -465,7 +567,6 @@ function DashboardContent({
                 y={90}
                 stroke="#9CA3AF"
                 strokeDasharray="4 4"
-                label={{ value: "90% Goal", position: "insideTopRight", fill: GRAY_500, fontSize: 11 }}
               />
               {showRawDots && (
                 <Line
@@ -481,7 +582,7 @@ function DashboardContent({
                 type="monotone"
                 dataKey="atcr"
                 stroke={TEAL}
-                strokeWidth={2}
+                strokeWidth={2.5}
                 fill="url(#atcrFill)"
               />
             </AreaChart>
@@ -490,10 +591,12 @@ function DashboardContent({
       </div>
 
       {/* Agent cards */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4" style={{ color: GRAY_900 }}>
-          Your Agents
-        </h2>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-sm font-semibold" style={{ color: GRAY_900 }}>
+            Agent Performance
+          </h3>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {agents.map((a) => (
             <AgentCard
@@ -512,23 +615,38 @@ function DashboardContent({
   );
 }
 
-function MetricCard({
+function MiniMetric({
   label,
   value,
-  sub,
+  delta,
+  positive,
 }: {
   label: string;
   value: string;
-  sub: React.ReactNode;
+  delta: string;
+  positive: boolean;
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5">
-      <div className="text-sm" style={{ color: GRAY_500 }}>{label}</div>
-      <div className="text-2xl font-bold mt-1 mb-2" style={{ color: GRAY_900 }}>{value}</div>
-      <div className="text-xs" style={{ color: GRAY_500 }}>{sub}</div>
+    <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-5 hover:border-[#00C9A7]/30 transition-colors">
+      <p
+        className="text-[10px] font-bold uppercase tracking-widest mb-1"
+        style={{ color: "#9CA3AF" }}
+      >
+        {label}
+      </p>
+      <p className="text-xl font-bold" style={{ color: GRAY_900 }}>
+        {value}
+      </p>
+      <p
+        className="text-[10px] font-medium mt-1"
+        style={{ color: positive ? TEAL : RED }}
+      >
+        {delta}
+      </p>
     </div>
   );
 }
+
 
 function TrendTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
