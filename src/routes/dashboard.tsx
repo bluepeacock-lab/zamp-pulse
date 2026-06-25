@@ -572,7 +572,7 @@ function AgentCard({
   const improving = juneAtcr > mayAtcr && juneTasks.length > 0 && mayTasks.length > 0;
 
   // Sparkline: last 30 days
-  const daily = dailyAtcr(filterByDays(tasks, 30));
+  const daily = dailyAtcr(filterByDays(tasks, 60), 7);
 
   return (
     <div
