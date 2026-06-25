@@ -184,9 +184,18 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )`;
 
+const CODE_CLIENT = `const { data: client } = await supabase
+  .from('clients')
+  .insert({ slug: 'doordash', name: 'DoorDash' })
+  .select()
+  .single()
+
+const CLIENT_ID = client.id`;
+
 const CODE_REGISTER = `const { data: agent } = await supabase
   .from('agents')
   .insert({
+    client_id: CLIENT_ID,  // DoorDash tenant
     name: 'Revenue Analyst',
     role_icon: '📊',
     account_id: 'your-org-uuid'
