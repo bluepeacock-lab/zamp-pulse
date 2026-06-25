@@ -400,7 +400,7 @@ function DashboardContent({
                   style={{ color: trendDelta >= 0 ? TEAL : RED }}
                 >
                   {trendDelta >= 0 ? "▲ +" : "▼ "}
-                  {trendDelta.toFixed(1)}% vs prior 30d
+                  {trendDelta.toFixed(1)}% {periodLabel}
                 </span>
               </div>
             </div>
