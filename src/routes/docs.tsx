@@ -626,6 +626,23 @@ function DocsPage() {
 
           <div className="space-y-8">
             <div>
+              <h3 className="text-lg font-semibold text-gray-900 font-mono">clients</h3>
+              <p className="text-sm text-gray-500 mb-3">
+                Top-level tenant. Every account (e.g., DoorDash) gets one row. Demo seeded with{" "}
+                <span className="font-mono">slug = 'doordash'</span>.
+              </p>
+              <SchemaTable rows={CLIENTS_ROWS} />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 font-mono">user_clients</h3>
+              <p className="text-sm text-gray-500 mb-3">
+                Many-to-many link between Supabase users and clients. Controls which tenant a user sees on login.
+              </p>
+              <SchemaTable rows={USER_CLIENTS_ROWS} />
+            </div>
+
+            <div>
               <h3 className="text-lg font-semibold text-gray-900 font-mono">agents</h3>
               <p className="text-sm text-gray-500 mb-3">
                 One row per AI agent. Register an agent before it can push task events.
