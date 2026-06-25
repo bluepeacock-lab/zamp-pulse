@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 type TasksSearch = { agent?: string };
 
 export const Route = createFileRoute("/tasks")({
-  head: () => ({ meta: [{ title: "Tasks · Zamp Scan" }] }),
+  head: () => ({ meta: [{ title: "Tasks · ZampPulse" }] }),
   validateSearch: (search: Record<string, unknown>): TasksSearch => ({
     agent: typeof search.agent === "string" ? search.agent : undefined,
   }),
@@ -241,7 +241,7 @@ function TasksPage() {
     const a = document.createElement("a");
     a.href = url;
     const today = new Date().toISOString().slice(0, 10);
-    a.download = `zampscan-tasks-${today}.csv`;
+    a.download = `zamppulse-tasks-${today}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in · Zamp Scan" }] }),
+  head: () => ({ meta: [{ title: "Sign in · ZampPulse" }] }),
   component: LoginPage,
 });
 
@@ -39,7 +39,7 @@ function LoginPage() {
       style={{ backgroundColor: "#F4F4F4", fontFamily: "Inter, system-ui, sans-serif" }}
     >
       <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full">
-        <h1 className="text-2xl font-bold text-center text-gray-900">🟢 ZampScan</h1>
+        <h1 className="text-2xl font-bold text-center text-gray-900">🟢 ZampPulse</h1>
         <form onSubmit={handleSubmit} className="space-y-4 mt-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>

@@ -4,7 +4,7 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/health")({
-  head: () => ({ meta: [{ title: "Health · Zamp Scan" }] }),
+  head: () => ({ meta: [{ title: "Health · ZampPulse" }] }),
   component: HealthPage,
 });
 
