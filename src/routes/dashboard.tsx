@@ -472,6 +472,16 @@ function DashboardContent({
                 strokeDasharray="4 4"
                 label={{ value: "90% Goal", position: "insideTopRight", fill: GRAY_500, fontSize: 11 }}
               />
+              {showRawDots && (
+                <Line
+                  type="monotone"
+                  dataKey="atcrRaw"
+                  stroke="none"
+                  dot={{ r: 2.5, fill: GRAY_500, fillOpacity: 0.2, stroke: "none" }}
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+              )}
               <Area
                 type="monotone"
                 dataKey="atcr"
