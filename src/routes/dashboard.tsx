@@ -90,7 +90,7 @@ function priorPeriod(tasks: TaskEvent[], days: number) {
   });
 }
 
-function dailyAtcr(tasks: TaskEvent[]) {
+function dailyAtcr(tasks: TaskEvent[], rollingWindow = 1) {
   const buckets = new Map<string, { total: number; completed: number }>();
   for (const t of tasks) {
     const k = dayKey(t.created_at);
@@ -99,13 +99,26 @@ function dailyAtcr(tasks: TaskEvent[]) {
     if (t.outcome === "completed") b.completed += 1;
     buckets.set(k, b);
   }
-  return [...buckets.entries()]
+  const raw = [...buckets.entries()]
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([date, { total, completed }]) => ({
       date,
-      atcr: total ? (completed / total) * 100 : 0,
-      tasks: total,
+      atcrRaw: total ? (completed / total) * 100 : 0,
+      completed,
+      total,
     }));
+  return raw.map((d, i) => {
+    const start = Math.max(0, i - rollingWindow + 1);
+    const window = raw.slice(start, i + 1);
+    const c = window.reduce((a, x) => a + x.completed, 0);
+    const t = window.reduce((a, x) => a + x.total, 0);
+    return {
+      date: d.date,
+      atcr: t ? (c / t) * 100 : 0,
+      atcrRaw: d.atcrRaw,
+      tasks: d.total,
+    };
+  });
 }
 
 function SkeletonCard({ h = "h-24" }: { h?: string }) {
