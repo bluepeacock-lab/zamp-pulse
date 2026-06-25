@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
+import { useClient } from "@/lib/client-context";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard · ZampPulse" }] }),
@@ -126,6 +127,8 @@ function SkeletonCard({ h = "h-24" }: { h?: string }) {
 }
 
 function DashboardPage() {
+  const { activeClient } = useClient();
+  const clientId = activeClient?.id;
   const [tasks, setTasks] = useState<TaskEvent[] | null>(null);
   const [agents, setAgents] = useState<Agent[] | null>(null);
   const [corrections, setCorrections] = useState<CorrectionEvent[] | null>(null);
@@ -135,6 +138,7 @@ function DashboardPage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    if (!clientId) return;
     let cancelled = false;
     setError(null);
     setTasks(null);
@@ -144,10 +148,10 @@ function DashboardPage() {
     (async () => {
       try {
         const [t, a, c, b] = await Promise.all([
-          supabase.from("task_events").select("*"),
-          supabase.from("agents").select("*"),
-          supabase.from("correction_events").select("*"),
-          supabase.from("baselines").select("*"),
+          supabase.from("task_events").select("*").eq("client_id", clientId),
+          supabase.from("agents").select("*").eq("client_id", clientId),
+          supabase.from("correction_events").select("*").eq("client_id", clientId),
+          supabase.from("baselines").select("*").eq("client_id", clientId),
         ]);
         if (cancelled) return;
         if (t.error) throw t.error;
@@ -166,7 +170,7 @@ function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, [reloadKey]);
+  }, [reloadKey, clientId]);
 
   const loading = !error && (!tasks || !agents || !corrections || !baselines);
 
