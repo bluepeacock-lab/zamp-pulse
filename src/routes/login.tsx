@@ -41,7 +41,7 @@ function LoginPage() {
       <div className="bg-white rounded-2xl shadow-lg p-8 max-w-sm w-full">
         <h1 className="text-2xl font-bold text-center text-gray-900">🟢 Zamp</h1>
         <p className="text-sm text-gray-500 text-center mb-6">
-          Agent Performance Observatory
+          Agent Performance Scan
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
