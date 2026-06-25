@@ -248,64 +248,63 @@ function DashboardContent({
 }) {
   const navigate = useNavigate();
 
-  // Period-scoped tasks for chart and trend
+  // Period-scoped tasks — drives ENTIRE dashboard
+  const periodDays = period;
   const periodTasks = useMemo(
     () => filterByDays(tasks, period === 60 ? null : period),
     [tasks, period],
   );
 
-  // ATCR breakdown over ALL tasks (hero header counts)
+  // Outcome breakdown over period
   const counts = useMemo(() => {
     const c = { completed: 0, escalated: 0, corrected: 0, failed: 0 };
-    for (const t of tasks) {
+    for (const t of periodTasks) {
       if (t.outcome === "completed") c.completed += 1;
       else if (t.outcome === "escalated") c.escalated += 1;
       else if (t.outcome === "corrected") c.corrected += 1;
       else if (t.outcome === "failed") c.failed += 1;
     }
     return c;
-  }, [tasks]);
-  const total = tasks.length;
+  }, [periodTasks]);
+  const total = periodTasks.length;
   const atcrAll = total ? (counts.completed / total) * 100 : 0;
 
-  // Trend vs prior period (fixed 30d window, independent of chart period selector)
-  const currTasks = filterByDays(tasks, 30);
-  const prevTasks = priorPeriod(tasks, 30);
-  const currAtcr = computeAtcr(currTasks);
+  // Trend vs prior equivalent period
+  const prevTasks = priorPeriod(tasks, periodDays);
   const prevAtcr = computeAtcr(prevTasks);
-  const trendDelta = currAtcr - prevAtcr;
+  const trendDelta = atcrAll - prevAtcr;
+  const periodLabel = `vs prior ${periodDays}d`;
 
-
-  // Card 1 — Accuracy (completed/(completed+corrected))
+  // Card 1 — Accuracy
   const accDen = counts.completed + counts.corrected;
   const accuracy = accDen ? (counts.completed / accDen) * 100 : 0;
-  const last30 = filterByDays(tasks, 30);
-  const last30Counts = last30.reduce(
-    (a, t) => {
-      if (t.outcome === "completed") a.c += 1;
-      else if (t.outcome === "corrected") a.x += 1;
-      return a;
-    },
-    { c: 0, x: 0 },
-  );
-  const accuracy30 = last30Counts.c + last30Counts.x ? (last30Counts.c / (last30Counts.c + last30Counts.x)) * 100 : 0;
+  const prevAccDen = prevTasks.filter((t) => t.outcome === "completed" || t.outcome === "corrected").length;
+  const prevAccuracy = prevAccDen
+    ? (prevTasks.filter((t) => t.outcome === "completed").length / prevAccDen) * 100
+    : 0;
 
   // Card 2 — Escalation
   const escalationRate = total ? (counts.escalated / total) * 100 : 0;
-  const esc30Den = last30.length;
-  const esc30 = esc30Den ? (last30.filter((t) => t.outcome === "escalated").length / esc30Den) * 100 : 0;
+  const prevEscRate = prevTasks.length
+    ? (prevTasks.filter((t) => t.outcome === "escalated").length / prevTasks.length) * 100
+    : 0;
 
-  // Card 3 — Processing time
-  const procTimes = tasks.map((t) => t.processing_seconds ?? 0).filter((n) => n > 0);
+  // Card 3 — Processing time (period scoped)
+  const procTimes = periodTasks.map((t) => t.processing_seconds ?? 0).filter((n) => n > 0);
   const avgProc = procTimes.length ? procTimes.reduce((a, b) => a + b, 0) / procTimes.length : 0;
   const avgBaselineMin = baselines.length
     ? baselines.reduce((a, b) => a + (b.minutes_per_task ?? 0), 0) / baselines.length
     : 0;
   const speedup = avgProc > 0 && avgBaselineMin > 0 ? (avgBaselineMin * 60) / avgProc : 0;
 
-  // Card 4 — Coaching
-  const totalCorrections = corrections.length;
-  const generalized = corrections.filter((c) => c.generalized).length;
+  // Card 4 — Coaching (period scoped)
+  const periodCorrections = useMemo(() => {
+    if (period === 60) return corrections;
+    const cutoff = Date.now() - period * 86400000;
+    return corrections.filter((c) => new Date(c.created_at).getTime() >= cutoff);
+  }, [corrections, period]);
+  const totalCorrections = periodCorrections.length;
+  const generalized = periodCorrections.filter((c) => c.generalized).length;
   const genPct = totalCorrections ? (generalized / totalCorrections) * 100 : 0;
 
   // Trend chart — 7-day rolling average for 30d/60d; raw for 7d
