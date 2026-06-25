@@ -307,26 +307,8 @@ function DashboardContent({
     <div className="space-y-4">
       {/* Hero */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="text-xs uppercase tracking-wider" style={{ color: GRAY_500 }}>
-            Autonomous Task Completion Rate
-          </div>
-          <div className="flex gap-1">
-            {[7, 30, 60].map((d) => (
-              <button
-                key={d}
-                onClick={() => setPeriod(d as 7 | 30 | 60)}
-                className="px-3 py-1 rounded-md text-xs font-medium transition-colors"
-                style={
-                  period === d
-                    ? { backgroundColor: TEAL, color: "white" }
-                    : { backgroundColor: "#F3F4F6", color: GRAY_500 }
-                }
-              >
-                {d}d
-              </button>
-            ))}
-          </div>
+        <div className="text-xs uppercase tracking-wider mb-4" style={{ color: GRAY_500 }}>
+          Autonomous Task Completion Rate
         </div>
 
         <div className="flex items-baseline gap-4 mb-5">
@@ -335,9 +317,10 @@ function DashboardContent({
           </div>
           <div className="text-sm font-medium" style={{ color: trendDelta >= 0 ? GREEN : RED }}>
             {trendDelta >= 0 ? "▲" : "▼"} {trendDelta >= 0 ? "+" : ""}
-            {trendDelta.toFixed(1)}% vs prior {periodDays}d
+            {trendDelta.toFixed(1)}% last 30d vs prior 30d
           </div>
         </div>
+
 
         <div className="flex h-3 w-full rounded-full overflow-hidden mb-2">
           {[
