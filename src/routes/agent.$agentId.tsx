@@ -611,9 +611,10 @@ function AgentDetailContent({
         <div className="divide-y divide-gray-100">
           {recentTasks.map((t) => (
             <div key={t.id} className="py-2.5 grid grid-cols-12 items-center text-sm gap-2">
-              <div className="col-span-3 font-medium" style={{ color: GRAY_900 }}>{t.source_reference}</div>
-              <div className="col-span-3" style={{ color: GRAY_500 }}>{titleCase(t.task_subtype)}</div>
-              <div className="col-span-2" style={{ color: GRAY_500 }}>{t.processing_seconds ?? 0}s</div>
+              <div className="col-span-2 font-medium" style={{ color: GRAY_900 }}>{t.source_reference}</div>
+              <div className="col-span-2" style={{ color: GRAY_500 }}>{titleCase(t.task_subtype)}</div>
+              <div className="col-span-3" style={{ color: GRAY_500 }}>{fmtFullDate(t.ts_received)}</div>
+              <div className="col-span-1" style={{ color: GRAY_500 }}>{t.processing_seconds ?? 0}s</div>
               <div className="col-span-2"><OutcomeBadge outcome={t.outcome} /></div>
               <div className="col-span-2 text-right" style={{ color: GRAY_500 }}>
                 {t.confidence_score != null ? `${Math.round(Number(t.confidence_score) * 100)}%` : "—"}
@@ -624,6 +625,32 @@ function AgentDetailContent({
             <div className="text-sm py-4" style={{ color: GRAY_500 }}>No tasks yet</div>
           )}
         </div>
+        {sortedTasks.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 text-sm">
+            <div style={{ color: GRAY_500 }}>
+              Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, sortedTasks.length)} of {sortedTasks.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="px-3 py-1.5 rounded-md border border-gray-200 disabled:opacity-40"
+                style={{ color: GRAY_900 }}
+              >
+                ← Prev
+              </button>
+              <span style={{ color: GRAY_500 }}>Page {safePage} of {totalPages}</span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="px-3 py-1.5 rounded-md border border-gray-200 disabled:opacity-40"
+                style={{ color: GRAY_900 }}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
