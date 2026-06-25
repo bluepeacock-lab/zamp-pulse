@@ -506,7 +506,7 @@ function DashboardContent({
         </div>
       </div>
       <footer className="text-xs text-gray-400 text-center py-4">
-        Powered by Zamp Observatory v1.0 · Demo data: May–Jun 2026
+        Powered by Zamp Scan v1.0 · Demo data: May–Jun 2026
       </footer>
     </div>
   );
