@@ -665,10 +665,12 @@ function TrendTooltip({ active, payload, label }: any) {
 function AgentCard({
   agent,
   tasks,
+  allTasks,
   onClick,
 }: {
   agent: Agent;
   tasks: TaskEvent[];
+  allTasks: TaskEvent[];
   onClick: () => void;
 }) {
   const total = tasks.length;
@@ -680,21 +682,21 @@ function AgentCard({
   const accuracy = accDen ? (completed / accDen) * 100 : 0;
   const escalation = total ? (escalated / total) * 100 : 0;
 
-  // May vs June ATCR (current year)
-  const mayTasks = tasks.filter((t) => new Date(t.created_at).getUTCMonth() === 4);
-  const juneTasks = tasks.filter((t) => new Date(t.created_at).getUTCMonth() === 5);
+  // May vs June ATCR (using full history for improvement flag)
+  const mayTasks = allTasks.filter((t) => new Date(t.created_at).getUTCMonth() === 4);
+  const juneTasks = allTasks.filter((t) => new Date(t.created_at).getUTCMonth() === 5);
   const mayAtcr = computeAtcr(mayTasks);
   const juneAtcr = computeAtcr(juneTasks);
   const improving = juneAtcr > mayAtcr && juneTasks.length > 0 && mayTasks.length > 0;
 
-  // Sparkline: last 30 days
-  const daily = dailyAtcr(filterByDays(tasks, 60), 7);
+  // Sparkline: use period tasks
+  const daily = dailyAtcr(tasks, 7);
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className="bg-white rounded-xl shadow-sm p-5 cursor-pointer hover:shadow-md transition border border-transparent hover:border-teal-200"
-      style={{ borderColor: undefined }}
+      className="group text-left w-full bg-white rounded-xl shadow-sm p-5 cursor-pointer transition border border-zinc-200 hover:border-[#00C9A7] hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -723,6 +725,17 @@ function AgentCard({
       <div className="text-sm mt-2" style={{ color: GRAY_500 }}>
         Accuracy: {accuracy.toFixed(0)}% · Escalation: {escalation.toFixed(0)}% · Tasks: {total}
       </div>
-    </div>
+      <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEAL }}>
+          View agent details
+        </span>
+        <span
+          className="text-base font-bold transition-transform group-hover:translate-x-1"
+          style={{ color: TEAL }}
+        >
+          →
+        </span>
+      </div>
+    </button>
   );
 }
