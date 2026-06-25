@@ -313,8 +313,10 @@ function DashboardContent({
   const generalized = corrections.filter((c) => c.generalized).length;
   const genPct = totalCorrections ? (generalized / totalCorrections) * 100 : 0;
 
-  // Trend chart
-  const trendData = useMemo(() => dailyAtcr(periodTasks), [periodTasks]);
+  // Trend chart — 7-day rolling average for 30d/60d; raw for 7d
+  const rollingWindow = period === 7 ? 1 : 7;
+  const trendData = useMemo(() => dailyAtcr(periodTasks, rollingWindow), [periodTasks, rollingWindow]);
+  const showRawDots = period !== 7;
 
   return (
     <div className="space-y-4">
