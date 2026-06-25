@@ -141,7 +141,13 @@ function DashboardPage() {
         if (a.error) throw a.error;
         if (c.error) throw c.error;
         if (b.error) throw b.error;
-        setTasks((t.data ?? []) as TaskEvent[]);
+        const taskRows = (t.data ?? []) as TaskEvent[];
+        console.log("[dashboard] task_events count:", taskRows.length);
+        console.log(
+          "[dashboard] unique outcome values:",
+          Array.from(new Set(taskRows.map((r) => r.outcome))),
+        );
+        setTasks(taskRows);
         setAgents((a.data ?? []) as Agent[]);
         setCorrections((c.data ?? []) as CorrectionEvent[]);
         setBaselines((b.data ?? []) as Baseline[]);
