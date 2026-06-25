@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Code2, ArrowRight } from "lucide-react";
+import { Check, Copy, Code2, ArrowRight, ArrowLeft, LayoutDashboard } from "lucide-react";
 
 export const Route = createFileRoute("/docs")({
   component: DocsPage,

@@ -80,6 +80,18 @@ function LoginPage() {
               "Sign In"
             )}
           </button>
+          <div className="relative group">
+            <button
+              type="button"
+              className="w-full text-teal-600 font-medium rounded-lg py-2.5 border border-teal-200 hover:bg-teal-50 transition"
+            >
+              Sign Up
+            </button>
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 text-center shadow-lg z-10">
+              Contact rakeshgorkal@gmail.com to get your account created
+              <div className="absolute left-1/2 -translate-x-1/2 top-full -mt-1 border-4 border-transparent border-t-gray-900" />
+            </div>
+          </div>
         </form>
       </div>
     </div>
