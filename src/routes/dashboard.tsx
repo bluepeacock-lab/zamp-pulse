@@ -70,7 +70,7 @@ function formatShortDate(d: string) {
 
 function computeAtcr(tasks: TaskEvent[]) {
   if (tasks.length === 0) return 0;
-  const completed = tasks.filter((t) => t.status === "completed").length;
+  const completed = tasks.filter((t) => t.outcome === "completed").length;
   return (completed / tasks.length) * 100;
 }
 
@@ -96,7 +96,7 @@ function dailyAtcr(tasks: TaskEvent[]) {
     const k = dayKey(t.created_at);
     const b = buckets.get(k) ?? { total: 0, completed: 0 };
     b.total += 1;
-    if (t.status === "completed") b.completed += 1;
+    if (t.outcome === "completed") b.completed += 1;
     buckets.set(k, b);
   }
   return [...buckets.entries()]
@@ -244,10 +244,10 @@ function DashboardContent({
   const counts = useMemo(() => {
     const c = { completed: 0, escalated: 0, corrected: 0, failed: 0 };
     for (const t of tasks) {
-      if (t.status === "completed") c.completed += 1;
-      else if (t.status === "escalated") c.escalated += 1;
-      else if (t.status === "corrected") c.corrected += 1;
-      else if (t.status === "failed") c.failed += 1;
+      if (t.outcome === "completed") c.completed += 1;
+      else if (t.outcome === "escalated") c.escalated += 1;
+      else if (t.outcome === "corrected") c.corrected += 1;
+      else if (t.outcome === "failed") c.failed += 1;
     }
     return c;
   }, [tasks]);
@@ -268,8 +268,8 @@ function DashboardContent({
   const last30 = filterByDays(tasks, 30);
   const last30Counts = last30.reduce(
     (a, t) => {
-      if (t.status === "completed") a.c += 1;
-      else if (t.status === "corrected") a.x += 1;
+      if (t.outcome === "completed") a.c += 1;
+      else if (t.outcome === "corrected") a.x += 1;
       return a;
     },
     { c: 0, x: 0 },
@@ -279,7 +279,7 @@ function DashboardContent({
   // Card 2 — Escalation
   const escalationRate = total ? (counts.escalated / total) * 100 : 0;
   const esc30Den = last30.length;
-  const esc30 = esc30Den ? (last30.filter((t) => t.status === "escalated").length / esc30Den) * 100 : 0;
+  const esc30 = esc30Den ? (last30.filter((t) => t.outcome === "escalated").length / esc30Den) * 100 : 0;
 
   // Card 3 — Processing time
   const procTimes = tasks.map((t) => t.processing_seconds ?? 0).filter((n) => n > 0);
@@ -517,9 +517,9 @@ function AgentCard({
   onClick: () => void;
 }) {
   const total = tasks.length;
-  const completed = tasks.filter((t) => t.status === "completed").length;
-  const corrected = tasks.filter((t) => t.status === "corrected").length;
-  const escalated = tasks.filter((t) => t.status === "escalated").length;
+  const completed = tasks.filter((t) => t.outcome === "completed").length;
+  const corrected = tasks.filter((t) => t.outcome === "corrected").length;
+  const escalated = tasks.filter((t) => t.outcome === "escalated").length;
   const atcr = total ? (completed / total) * 100 : 0;
   const accDen = completed + corrected;
   const accuracy = accDen ? (completed / accDen) * 100 : 0;
