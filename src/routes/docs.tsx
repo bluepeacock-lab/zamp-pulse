@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Code2, ArrowRight } from "lucide-react";
+import { Check, Copy, Code2, ArrowRight, ArrowLeft, LayoutDashboard } from "lucide-react";
 
 export const Route = createFileRoute("/docs")({
   component: DocsPage,
@@ -417,6 +417,14 @@ function DocsPage() {
               );
             })}
           </nav>
+          <Link
+            to="/dashboard"
+            className="mt-4 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-teal-600 bg-gray-50 hover:bg-teal-50 border border-gray-200 rounded-lg px-3 py-2 transition-colors"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            <span>Back to Dashboard</span>
+            <ArrowLeft className="h-3.5 w-3.5 -ml-0.5 opacity-70" />
+          </Link>
         </div>
       </aside>
 
