@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TasksRouteImport } from './routes/tasks'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
@@ -18,6 +19,11 @@ import { Route as AgentAgentIdRouteImport } from './routes/agent.$agentId'
 const TasksRoute = TasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthRoute = HealthRouteImport.update({
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/health': typeof HealthRoute
+  '/login': typeof LoginRoute
   '/tasks': typeof TasksRoute
   '/agent/$agentId': typeof AgentAgentIdRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/health': typeof HealthRoute
+  '/login': typeof LoginRoute
   '/tasks': typeof TasksRoute
   '/agent/$agentId': typeof AgentAgentIdRoute
 }
@@ -60,21 +68,36 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRoute
   '/health': typeof HealthRoute
+  '/login': typeof LoginRoute
   '/tasks': typeof TasksRoute
   '/agent/$agentId': typeof AgentAgentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/health' | '/tasks' | '/agent/$agentId'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/health'
+    | '/login'
+    | '/tasks'
+    | '/agent/$agentId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/health' | '/tasks' | '/agent/$agentId'
-  id: '__root__' | '/' | '/dashboard' | '/health' | '/tasks' | '/agent/$agentId'
+  to: '/' | '/dashboard' | '/health' | '/login' | '/tasks' | '/agent/$agentId'
+  id:
+    | '__root__'
+    | '/'
+    | '/dashboard'
+    | '/health'
+    | '/login'
+    | '/tasks'
+    | '/agent/$agentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRoute
   HealthRoute: typeof HealthRoute
+  LoginRoute: typeof LoginRoute
   TasksRoute: typeof TasksRoute
   AgentAgentIdRoute: typeof AgentAgentIdRoute
 }
@@ -86,6 +109,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof TasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health': {
@@ -123,6 +153,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRoute,
   HealthRoute: HealthRoute,
+  LoginRoute: LoginRoute,
   TasksRoute: TasksRoute,
   AgentAgentIdRoute: AgentAgentIdRoute,
 }
