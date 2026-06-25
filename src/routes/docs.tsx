@@ -332,6 +332,8 @@ function TabbedExamples() {
 const GLOSSARY: { term: string; def: string }[] = [
   { term: "ATCR", def: "Autonomous Task Completion Rate. The percentage of tasks an agent handles end-to-end without any human involvement. ZampPulse's North Star metric." },
   { term: "Autonomous Task", def: "A task where outcome = 'completed' and no correction was applied. The human never touched it." },
+  { term: "Client", def: "The top-level tenant in ZampPulse. Every account (e.g., DoorDash) is a client. All data is scoped by client_id." },
+  { term: "Tenant", def: "A synonym for client. Used in the context of multi-tenancy and data isolation." },
   { term: "Escalation", def: "When the agent routes a task to a human because its confidence is too low to act autonomously. A sign of good judgment, not failure." },
   { term: "Correction", def: "When a human fixes the agent's completed output after the fact. Indicates the agent was confident but wrong." },
   { term: "Generalized Correction", def: "A correction that improved the agent's accuracy on similar future tasks. Measured by the accuracy_impact field." },
