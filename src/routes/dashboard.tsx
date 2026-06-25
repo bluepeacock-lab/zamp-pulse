@@ -31,7 +31,7 @@ const GRAY_900 = "#1A1A1A";
 type TaskEvent = {
   id: string;
   agent_id: string;
-  status: string; // 'completed' | 'escalated' | 'corrected' | 'failed'
+  outcome: string; // 'completed' | 'escalated' | 'corrected' | 'failed'
   processing_seconds: number | null;
   created_at: string;
 };
