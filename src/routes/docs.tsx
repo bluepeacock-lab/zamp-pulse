@@ -8,6 +8,7 @@ export const Route = createFileRoute("/docs")({
 
 const SECTIONS = [
   { id: "overview", label: "Overview" },
+  { id: "tenancy", label: "Clients & Tenancy" },
   { id: "architecture", label: "Architecture" },
   { id: "data-flow", label: "Data Flow" },
   { id: "schema", label: "Database Schema" },
