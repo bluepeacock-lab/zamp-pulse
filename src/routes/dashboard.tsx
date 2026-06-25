@@ -414,8 +414,15 @@ function DashboardContent({
       {/* Trend chart */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-sm font-semibold" style={{ color: GRAY_900 }}>
-            ATCR Trend
+          <div>
+            <div className="text-sm font-semibold" style={{ color: GRAY_900 }}>
+              ATCR Trend
+            </div>
+            {showRawDots && (
+              <div className="text-xs mt-0.5" style={{ color: GRAY_500 }}>
+                7-day rolling average
+              </div>
+            )}
           </div>
           <div className="flex gap-1">
             {[7, 30, 60].map((d) => (
