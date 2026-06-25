@@ -90,7 +90,7 @@ function priorPeriod(tasks: TaskEvent[], days: number) {
   });
 }
 
-function dailyAtcr(tasks: TaskEvent[]) {
+function dailyAtcr(tasks: TaskEvent[], rollingWindow = 1) {
   const buckets = new Map<string, { total: number; completed: number }>();
   for (const t of tasks) {
     const k = dayKey(t.created_at);
@@ -99,13 +99,26 @@ function dailyAtcr(tasks: TaskEvent[]) {
     if (t.outcome === "completed") b.completed += 1;
     buckets.set(k, b);
   }
-  return [...buckets.entries()]
+  const raw = [...buckets.entries()]
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .map(([date, { total, completed }]) => ({
       date,
-      atcr: total ? (completed / total) * 100 : 0,
-      tasks: total,
+      atcrRaw: total ? (completed / total) * 100 : 0,
+      completed,
+      total,
     }));
+  return raw.map((d, i) => {
+    const start = Math.max(0, i - rollingWindow + 1);
+    const window = raw.slice(start, i + 1);
+    const c = window.reduce((a, x) => a + x.completed, 0);
+    const t = window.reduce((a, x) => a + x.total, 0);
+    return {
+      date: d.date,
+      atcr: t ? (c / t) * 100 : 0,
+      atcrRaw: d.atcrRaw,
+      tasks: d.total,
+    };
+  });
 }
 
 function SkeletonCard({ h = "h-24" }: { h?: string }) {
@@ -300,8 +313,10 @@ function DashboardContent({
   const generalized = corrections.filter((c) => c.generalized).length;
   const genPct = totalCorrections ? (generalized / totalCorrections) * 100 : 0;
 
-  // Trend chart
-  const trendData = useMemo(() => dailyAtcr(periodTasks), [periodTasks]);
+  // Trend chart — 7-day rolling average for 30d/60d; raw for 7d
+  const rollingWindow = period === 7 ? 1 : 7;
+  const trendData = useMemo(() => dailyAtcr(periodTasks, rollingWindow), [periodTasks, rollingWindow]);
+  const showRawDots = period !== 7;
 
   return (
     <div className="space-y-4">
@@ -399,8 +414,15 @@ function DashboardContent({
       {/* Trend chart */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="text-sm font-semibold" style={{ color: GRAY_900 }}>
-            ATCR Trend
+          <div>
+            <div className="text-sm font-semibold" style={{ color: GRAY_900 }}>
+              ATCR Trend
+            </div>
+            {showRawDots && (
+              <div className="text-xs mt-0.5" style={{ color: GRAY_500 }}>
+                7-day rolling average
+              </div>
+            )}
           </div>
           <div className="flex gap-1">
             {[7, 30, 60].map((d) => (
@@ -450,6 +472,16 @@ function DashboardContent({
                 strokeDasharray="4 4"
                 label={{ value: "90% Goal", position: "insideTopRight", fill: GRAY_500, fontSize: 11 }}
               />
+              {showRawDots && (
+                <Line
+                  type="monotone"
+                  dataKey="atcrRaw"
+                  stroke="none"
+                  dot={{ r: 2.5, fill: GRAY_500, fillOpacity: 0.2, stroke: "none" }}
+                  activeDot={false}
+                  isAnimationActive={false}
+                />
+              )}
               <Area
                 type="monotone"
                 dataKey="atcr"
