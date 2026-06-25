@@ -1,5 +1,7 @@
-import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
 function NavLink({ to, label }: { to: string; label: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -19,7 +21,48 @@ function NavLink({ to, label }: { to: string; label: string }) {
   );
 }
 
+function FullPageLoader() {
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{ backgroundColor: "#F4F4F4" }}
+    >
+      <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-teal-500 animate-spin" />
+    </div>
+  );
+}
+
 export default function Layout({ children }: { children?: ReactNode }) {
+  const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+      setChecking(false);
+      if (!data.session) navigate({ to: "/login" });
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      if (!s) navigate({ to: "/login" });
+    });
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [navigate]);
+
+  if (checking) return <FullPageLoader />;
+  if (!session) return <FullPageLoader />;
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/login" });
+  };
+
   return (
     <div
       className="min-h-screen animate-in fade-in duration-200"
@@ -38,7 +81,15 @@ export default function Layout({ children }: { children?: ReactNode }) {
             <NavLink to="/tasks" label="Tasks" />
             <NavLink to="/health" label="Health" />
           </nav>
-          <span className="hidden sm:inline text-sm text-gray-500">demo@zamp.ai</span>
+          <div className="hidden sm:flex items-center gap-3">
+            <span className="text-sm text-gray-500">{session.user.email}</span>
+            <button
+              onClick={handleSignOut}
+              className="text-sm text-gray-500 hover:text-gray-900 border border-gray-300 rounded-lg px-3 py-1 transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
