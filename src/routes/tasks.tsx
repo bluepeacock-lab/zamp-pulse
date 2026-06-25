@@ -1,18 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { zodValidator, fallback } from "@tanstack/zod-adapter";
-import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
 import { Search, Download, ChevronDown, ChevronUp } from "lucide-react";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 
-const searchSchema = z.object({
-  agent: fallback(z.string().optional(), undefined),
-});
+type TasksSearch = { agent?: string };
 
 export const Route = createFileRoute("/tasks")({
   head: () => ({ meta: [{ title: "Tasks · Zamp Observatory" }] }),
-  validateSearch: zodValidator(searchSchema),
+  validateSearch: (search: Record<string, unknown>): TasksSearch => ({
+    agent: typeof search.agent === "string" ? search.agent : undefined,
+  }),
   component: TasksPage,
 });
 
