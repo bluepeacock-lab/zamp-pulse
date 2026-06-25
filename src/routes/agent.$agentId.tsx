@@ -246,6 +246,7 @@ function AgentDetailContent({
   onEdit: () => void;
 }) {
   const navigate = useNavigate();
+  const [page, setPage] = useState(1);
 
   const counts = useMemo(() => {
     const c = { completed: 0, escalated: 0, corrected: 0, failed: 0 };
