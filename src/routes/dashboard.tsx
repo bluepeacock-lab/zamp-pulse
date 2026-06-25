@@ -647,23 +647,6 @@ function MiniMetric({
   );
 }
 
-function MetricCard({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-5">
-      <div className="text-sm" style={{ color: GRAY_500 }}>{label}</div>
-      <div className="text-2xl font-bold mt-1 mb-2" style={{ color: GRAY_900 }}>{value}</div>
-      <div className="text-xs" style={{ color: GRAY_500 }}>{sub}</div>
-    </div>
-  );
-}
 
 function TrendTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
