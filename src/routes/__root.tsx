@@ -77,9 +77,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Zamp Observatory" },
+      { title: "Zamp Scan" },
       { name: "description", content: "AI Agent Performance Observatory" },
-      { property: "og:title", content: "Zamp Observatory" },
+      { property: "og:title", content: "Zamp Scan" },
       { property: "og:description", content: "AI Agent Performance Observatory" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

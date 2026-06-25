@@ -16,7 +16,7 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard · Zamp Observatory" }] }),
+  head: () => ({ meta: [{ title: "Dashboard · Zamp Scan" }] }),
   component: DashboardPage,
 });
 
@@ -349,7 +349,7 @@ function DashboardContent({
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: GRAY_900 }}>
-            Zamp Observatory
+            Zamp Scan
           </h1>
           <p className="text-sm" style={{ color: GRAY_500 }}>
             Executive performance overview

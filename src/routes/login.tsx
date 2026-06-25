@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in · Zamp Observatory" }] }),
+  head: () => ({ meta: [{ title: "Sign in · Zamp Scan" }] }),
   component: LoginPage,
 });
 
