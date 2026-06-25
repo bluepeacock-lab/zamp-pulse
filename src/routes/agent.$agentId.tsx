@@ -18,7 +18,7 @@ import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/agent/$agentId")({
-  head: () => ({ meta: [{ title: "Agent · Zamp Observatory" }] }),
+  head: () => ({ meta: [{ title: "Agent · Zamp Scan" }] }),
   component: AgentDetailPage,
 });
 

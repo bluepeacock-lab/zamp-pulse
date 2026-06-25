@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 type TasksSearch = { agent?: string };
 
 export const Route = createFileRoute("/tasks")({
-  head: () => ({ meta: [{ title: "Tasks · Zamp Observatory" }] }),
+  head: () => ({ meta: [{ title: "Tasks · Zamp Scan" }] }),
   validateSearch: (search: Record<string, unknown>): TasksSearch => ({
     agent: typeof search.agent === "string" ? search.agent : undefined,
   }),
