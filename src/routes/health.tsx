@@ -91,6 +91,109 @@ function bandFor(score: number) {
   return BANDS.find((b) => score >= b.min && score <= b.max) ?? BANDS[0];
 }
 
+const DAY = 24 * 60 * 60 * 1000;
+
+function computeSignals(
+  tasks: { outcome: string; ts_received: string }[],
+  agents: { id: string }[],
+  baselines: { agent_id: string }[],
+): Signal[] {
+  const now = Date.now();
+  const inRange = (t: number, start: number, end: number) => t >= start && t < end;
+  const parsed = tasks
+    .map((t) => ({ outcome: t.outcome, ts: new Date(t.ts_received).getTime() }))
+    .filter((t) => !isNaN(t.ts));
+
+  // SIGNAL 1: Task Volume Decline
+  const last2wStart = now - 14 * DAY;
+  const prior4wStart = now - 42 * DAY;
+  const last2wCount = parsed.filter((t) => inRange(t.ts, last2wStart, now)).length;
+  const prior4wCount = parsed.filter((t) => inRange(t.ts, prior4wStart, last2wStart)).length;
+  const last2wAvgPerWeek = last2wCount / 2;
+  const prior4wAvgPerWeek = prior4wCount / 4;
+  const volumeChangePct =
+    prior4wAvgPerWeek > 0
+      ? ((last2wAvgPerWeek - prior4wAvgPerWeek) / prior4wAvgPerWeek) * 100
+      : 0;
+  // Check both halves of last 2 weeks for "2+ consecutive weeks" decline
+  const wk1Start = now - 7 * DAY;
+  const wk2Start = now - 14 * DAY;
+  const wk1Count = parsed.filter((t) => inRange(t.ts, wk1Start, now)).length;
+  const wk2Count = parsed.filter((t) => inRange(t.ts, wk2Start, wk1Start)).length;
+  const wk1Decline = prior4wAvgPerWeek > 0 && ((wk1Count - prior4wAvgPerWeek) / prior4wAvgPerWeek) * 100 < -30;
+  const wk2Decline = prior4wAvgPerWeek > 0 && ((wk2Count - prior4wAvgPerWeek) / prior4wAvgPerWeek) * 100 < -30;
+  const volumeTriggered = wk1Decline && wk2Decline;
+  const volumeSign = volumeChangePct >= 0 ? "+" : "";
+  const volumeSignal: Signal = {
+    id: "task_volume_decline",
+    signal_name: "task_volume_decline",
+    triggered: volumeTriggered,
+    points: volumeTriggered ? 30 : 0,
+    details: `${volumeSign}${volumeChangePct.toFixed(0)}% vs 4-week average`,
+  };
+
+  // SIGNAL 2: Rising Corrections
+  const last30Start = now - 30 * DAY;
+  const prior30Start = now - 60 * DAY;
+  const last30 = parsed.filter((t) => inRange(t.ts, last30Start, now));
+  const prior30 = parsed.filter((t) => inRange(t.ts, prior30Start, last30Start));
+  const rate = (arr: typeof parsed) =>
+    arr.length > 0 ? arr.filter((t) => t.outcome === "corrected").length / arr.length : 0;
+  const currRate = rate(last30);
+  const priorRate = rate(prior30);
+  const correctionsTriggered = currRate > priorRate;
+  const correctionsSignal: Signal = {
+    id: "rising_corrections",
+    signal_name: "rising_corrections",
+    triggered: correctionsTriggered,
+    points: correctionsTriggered ? 20 : 0,
+    details: correctionsTriggered
+      ? `Rising: ${(priorRate * 100).toFixed(0)}% → ${(currRate * 100).toFixed(0)}%`
+      : `Declining: ${(priorRate * 100).toFixed(0)}% → ${(currRate * 100).toFixed(0)}%`,
+  };
+
+  // SIGNAL 3: Stuck Escalations — weekly escalation rate last 4 weeks
+  const weeklyEscRates: number[] = [];
+  for (let i = 0; i < 4; i++) {
+    const end = now - i * 7 * DAY;
+    const start = end - 7 * DAY;
+    const wk = parsed.filter((t) => inRange(t.ts, start, end));
+    weeklyEscRates.push(
+      wk.length > 0 ? wk.filter((t) => t.outcome === "escalated").length / wk.length : 0,
+    );
+  }
+  // Index 0 = most recent week, 3 = oldest. Check oldest → newest.
+  const chrono = [...weeklyEscRates].reverse();
+  let flatOrRising = true;
+  for (let i = 1; i < chrono.length; i++) {
+    if (chrono[i] < chrono[i - 1] - 0.01) {
+      flatOrRising = false;
+      break;
+    }
+  }
+  const escSignal: Signal = {
+    id: "stuck_escalations",
+    signal_name: "stuck_escalations",
+    triggered: flatOrRising,
+    points: flatOrRising ? 15 : 0,
+    details: `Weekly: ${chrono.map((r) => `${(r * 100).toFixed(0)}%`).join(" → ")}`,
+  };
+
+  // SIGNAL 6: Missing Baseline
+  const baselineAgents = new Set(baselines.map((b) => b.agent_id));
+  const missing = agents.filter((a) => !baselineAgents.has(a.id)).length;
+  const missingTriggered = missing > 0;
+  const baselineSignal: Signal = {
+    id: "missing_baseline",
+    signal_name: "missing_baseline",
+    triggered: missingTriggered,
+    points: missingTriggered ? 10 : 0,
+    details: `${agents.length - missing} of ${agents.length} agent baselines captured`,
+  };
+
+  return [volumeSignal, correctionsSignal, escSignal, baselineSignal];
+}
+
 function HealthPage() {
   const [signals, setSignals] = useState<Signal[] | null>(null);
 
