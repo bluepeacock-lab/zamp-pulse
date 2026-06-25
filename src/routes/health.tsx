@@ -134,20 +134,105 @@ function HealthContent({ signals }: { signals: Signal[] }) {
 
   const byName = new Map(signals.map((s) => [s.signal_name, s]));
 
+  const bandBg: Record<string, string> = {
+    healthy: "bg-[#00C9A7]",
+    monitor: "bg-yellow-400",
+    at_risk: "bg-orange-400",
+    critical: "bg-red-500",
+  };
+  const bandText: Record<string, string> = {
+    healthy: "text-white",
+    monitor: "text-yellow-900",
+    at_risk: "text-orange-900",
+    critical: "text-white",
+  };
+
   return (
     <div className="space-y-6">
-      {/* Gauge */}
-      <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-        <Gauge percent={pct} color={band.color} score={totalScore} />
-        <div className="mt-4 flex justify-center">
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wide ${band.pill}`}
-          >
-            {band.label}
-          </span>
+      {/* Executive Command Bar */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col lg:flex-row lg:flex-nowrap lg:items-center gap-6 lg:gap-8">
+        {/* Score Gauge */}
+        <div className="flex items-center gap-5 lg:pr-8 lg:border-r lg:border-gray-100 shrink-0">
+          <CompactGauge percent={pct} color={band.color} score={totalScore} />
+          <div>
+            <span
+              className={`inline-block px-3 py-1 rounded-full text-xs font-bold tracking-wide ${band.pill} mb-1`}
+            >
+              {band.label}
+            </span>
+            <p className="text-sm text-gray-500 font-medium">Global Health Score</p>
+          </div>
         </div>
-        <p className="text-gray-600 max-w-lg mx-auto mt-4">{band.summary}</p>
+
+        {/* Scoring Legend */}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Scoring Legend
+          </p>
+          <div className="grid grid-cols-4 gap-1 h-12">
+            {BANDS.map((b, i) => {
+              const active = b.key === band.key;
+              const rounded =
+                i === 0 ? "rounded-l-md" : i === BANDS.length - 1 ? "rounded-r-md" : "";
+              return (
+                <div
+                  key={b.key}
+                  className={`${bandBg[b.key]} ${rounded} flex flex-col justify-center px-3 relative ${
+                    active ? "ring-2 ring-offset-1 ring-[#00C9A7]" : ""
+                  }`}
+                >
+                  <span className={`text-[10px] font-bold ${bandText[b.key]}`}>
+                    {b.range}
+                  </span>
+                  <span
+                    className={`text-[9px] leading-tight uppercase ${bandText[b.key]} opacity-90`}
+                  >
+                    {b.label}
+                  </span>
+                  {active && (
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-[#00C9A7]" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Recommended Action */}
+        <div className="bg-[#F4F4F4] rounded-lg p-4 flex items-center gap-4 border border-gray-200 lg:min-w-[320px] lg:max-w-[360px]">
+          <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm shrink-0">
+            <svg
+              className="w-5 h-5"
+              style={{ color: TEAL }}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-tight">
+              Recommended Action
+            </p>
+            <p className="text-sm font-medium text-gray-800 leading-snug">
+              {band.action}
+            </p>
+          </div>
+        </div>
       </div>
+
+      {/* Summary line */}
+      <p className="text-sm text-gray-600 max-w-3xl -mt-2">
+        {band.summary}
+        {band.key === "healthy" &&
+          " Both agents show improving ATCR trends and all operational signals are green."}
+      </p>
 
       {/* Signals */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -163,7 +248,7 @@ function HealthContent({ signals }: { signals: Signal[] }) {
             : { iconBg: "bg-green-100", iconColor: "text-green-700", icon: "✓" };
 
           return (
-            <div key={name} className="bg-white rounded-xl shadow-sm p-4 flex gap-3">
+            <div key={name} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex gap-3">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${iconBg} ${iconColor} font-semibold`}
               >
@@ -186,63 +271,11 @@ function HealthContent({ signals }: { signals: Signal[] }) {
           );
         })}
       </div>
-
-      {/* Scoring reference */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="font-semibold mb-4">Scoring Reference</h2>
-        <div className="overflow-hidden rounded-lg border border-gray-100">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-gray-600">
-              <tr>
-                <th className="px-4 py-2 font-medium">Score Range</th>
-                <th className="px-4 py-2 font-medium">Status</th>
-                <th className="px-4 py-2 font-medium">Recommended Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {BANDS.map((b) => {
-                const active = b.key === band.key;
-                return (
-                  <tr
-                    key={b.key}
-                    className={`border-t border-gray-100 ${
-                      active ? "bg-[#E6FBF6]" : ""
-                    }`}
-                    style={active ? { borderLeft: `4px solid ${TEAL}` } : undefined}
-                  >
-                    <td className="px-4 py-2 font-medium">{b.range}</td>
-                    <td className="px-4 py-2">{b.label[0] + b.label.slice(1).toLowerCase()}</td>
-                    <td className="px-4 py-2 text-gray-700">{b.action}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Recommended action */}
-      <div
-        className="bg-white rounded-xl shadow-sm p-6"
-        style={{ borderLeft: `4px solid ${TEAL}` }}
-      >
-        <div className="font-semibold mb-1">Recommended Action</div>
-        <p className="text-gray-700">
-          {band.action}
-          {band.key === "healthy" && (
-            <>
-              {" "}
-              Both agents show improving ATCR trends and all operational signals are
-              green.
-            </>
-          )}
-        </p>
-      </div>
     </div>
   );
 }
 
-function Gauge({
+function CompactGauge({
   percent,
   color,
   score,
@@ -251,22 +284,15 @@ function Gauge({
   color: string;
   score: number;
 }) {
-  const size = 180;
-  const stroke = 14;
+  const size = 96;
+  const stroke = 8;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const offset = c - (percent / 100) * c;
   return (
-    <div className="inline-flex relative" style={{ width: size, height: size }}>
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="#E5E7EB"
-          strokeWidth={stroke}
-          fill="none"
-        />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="#E5E7EB" strokeWidth={stroke} fill="none" />
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -280,9 +306,8 @@ function Gauge({
           style={{ transition: "stroke-dashoffset 600ms ease" }}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="text-5xl font-bold leading-none">{score}</div>
-        <div className="text-xs text-gray-500 mt-1">risk score</div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-3xl font-bold text-gray-900 leading-none">{score}</span>
       </div>
     </div>
   );
