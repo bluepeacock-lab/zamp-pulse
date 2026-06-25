@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, Download, ChevronDown, ChevronUp } from "lucide-react";
 import Layout from "@/components/Layout";
 import { supabase } from "@/integrations/supabase/client";
+import { useClient } from "@/lib/client-context";
 
 type TasksSearch = { agent?: string };
 
@@ -94,6 +95,8 @@ type SortKey = "ts_received" | "source_reference" | "agent" | "task_subtype" | "
 
 function TasksPage() {
   const { agent: agentParam } = Route.useSearch();
+  const { activeClient } = useClient();
+  const clientId = activeClient?.id;
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [tasks, setTasks] = useState<TaskEvent[]>([]);
@@ -118,14 +121,15 @@ function TasksPage() {
   }, [agentParam]);
 
   useEffect(() => {
+    if (!clientId) return;
     let alive = true;
     (async () => {
       setLoading(true);
       try {
         const [a, t, c] = await Promise.all([
-          supabase.from("agents").select("id,name,role_icon"),
-          supabase.from("task_events").select("*"),
-          supabase.from("correction_events").select("*"),
+          supabase.from("agents").select("id,name,role_icon").eq("client_id", clientId),
+          supabase.from("task_events").select("*").eq("client_id", clientId),
+          supabase.from("correction_events").select("*").eq("client_id", clientId),
         ]);
         if (!alive) return;
         if (a.error) throw a.error;
@@ -134,6 +138,8 @@ function TasksPage() {
         setAgents((a.data ?? []) as Agent[]);
         setTasks((t.data ?? []) as TaskEvent[]);
         setCorrections((c.data ?? []) as CorrectionEvent[]);
+        // Reset agent filter when switching clients (old id no longer valid)
+        setAgentId("all");
       } catch (e: any) {
         setError(e?.message ?? "Failed to load");
       } finally {
