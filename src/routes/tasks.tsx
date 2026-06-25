@@ -235,8 +235,8 @@ function TasksPage() {
         `${Math.round(t.confidence_score * 100)}%`,
       ];
     });
-    const csv = [header, ...rows]
-      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+    const csv = ["\uFEFF", header, ...rows]
+      .map((r) => (Array.isArray(r) ? r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",") : String(r)))
       .join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
