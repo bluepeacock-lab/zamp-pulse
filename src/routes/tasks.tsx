@@ -241,7 +241,7 @@ function TasksPage() {
     const a = document.createElement("a");
     a.href = url;
     const today = new Date().toISOString().slice(0, 10);
-    a.download = `zampscan-tasks-${today}.csv`;
+    a.download = `zamppulse-tasks-${today}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
