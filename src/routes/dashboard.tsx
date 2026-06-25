@@ -601,7 +601,8 @@ function DashboardContent({
             <AgentCard
               key={a.id}
               agent={a}
-              tasks={tasks.filter((t) => t.agent_id === a.id)}
+              tasks={periodTasks.filter((t) => t.agent_id === a.id)}
+              allTasks={tasks.filter((t) => t.agent_id === a.id)}
               onClick={() => navigate({ to: "/agent/$agentId", params: { agentId: a.id } })}
             />
           ))}
