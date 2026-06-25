@@ -709,13 +709,23 @@ function DocsPage() {
 
             <div>
               <h3 className="text-base font-semibold text-gray-900 mb-3">
-                Step 2: Register Your Agent (one-time)
+                Step 2: Create the Client (one-time)
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                All data is scoped to a client. In production this is usually created during onboarding. In the demo, DoorDash already exists.
+              </p>
+              <CodeBlock code={CODE_CLIENT} />
+            </div>
+
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 mb-3">
+                Step 3: Register Your Agent (one-time)
               </h3>
               <CodeBlock code={CODE_REGISTER} />
             </div>
 
             <div>
-              <h3 className="text-base font-semibold text-gray-900 mb-3">Step 3: Push Task Events</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-3">Step 4: Push Task Events</h3>
               <TabbedExamples />
             </div>
           </div>
