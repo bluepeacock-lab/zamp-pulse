@@ -33,19 +33,19 @@ computed AS (
     CASE
       WHEN i <= n/2 THEN make_timestamptz(
         2026, 5,
-        1 + ((i - 1) * 31 / (n/2)),
-        8 + ((i * 7) % 10),
-        (i * 13) % 60,
+        (1 + ((i - 1) * 31 / (n/2)))::integer,
+        (8 + ((i * 7) % 10))::integer,
+        ((i * 13) % 60)::integer,
         ((i * 17) % 60)::double precision,
-        'UTC'
+        'UTC'::text
       )
       ELSE make_timestamptz(
         2026, 6,
-        1 + ((i - n/2 - 1) * 23 / (n - n/2)),
-        8 + ((i * 7) % 10),
-        (i * 13) % 60,
+        (1 + ((i - n/2 - 1) * 23 / (n - n/2)))::integer,
+        (8 + ((i * 7) % 10))::integer,
+        ((i * 13) % 60)::integer,
         ((i * 17) % 60)::double precision,
-        'UTC'
+        'UTC'::text
       )
     END AS new_ts_received,
     1 + ((i * 11) % 3) AS start_delay_s,
