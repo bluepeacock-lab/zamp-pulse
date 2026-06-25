@@ -512,6 +512,57 @@ function DocsPage() {
           </div>
         </section>
 
+        {/* Clients & Tenancy */}
+        <section>
+          <SectionHeading
+            id="tenancy"
+            title="Clients & Tenancy"
+            subtitle="One account per client. Demo uses DoorDash."
+          />
+          <Card className="p-6 mb-6">
+            <p className="text-gray-700 leading-relaxed">
+              ZampPulse is built to support multiple clients — e.g., DoorDash, Uber, or any
+              enterprise account. Each client is a row in the{" "}
+              <span className="font-mono text-indigo-600">clients</span> table, and every
+              downstream record (agents, tasks, corrections, baselines) carries a{" "}
+              <span className="font-mono text-indigo-600">client_id</span>. The dashboard only
+              shows data for the active client. In this demo, the active client is hardcoded to{" "}
+              <strong>DoorDash</strong> so users see a single, focused account view.
+            </p>
+          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="h-2 w-2 rounded-full bg-teal-500" />
+                <h3 className="text-sm font-semibold text-gray-900">Single-tenant UI</h3>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                The header shows a static DoorDash badge. No client switcher is exposed.
+              </p>
+            </Card>
+            <Card className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="h-2 w-2 rounded-full bg-teal-500" />
+                <h3 className="text-sm font-semibold text-gray-900">Client-scoped queries</h3>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Every dashboard query filters by <span className="font-mono text-indigo-600">client_id</span>. Metrics never leak across tenants.
+              </p>
+            </Card>
+            <Card className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="h-2 w-2 rounded-full bg-teal-500" />
+                <h3 className="text-sm font-semibold text-gray-900">User association</h3>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                <span className="font-mono text-indigo-600">user_clients</span> links a Supabase user to their client. The demo account demo@zamp.ai is associated with DoorDash.
+              </p>
+            </Card>
+          </div>
+        </section>
+
+
+
         {/* Architecture */}
         <section>
           <SectionHeading id="architecture" title="System Architecture" />
