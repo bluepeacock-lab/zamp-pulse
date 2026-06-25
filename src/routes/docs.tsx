@@ -101,6 +101,7 @@ function SchemaTable({ rows }: { rows: SchemaRow[] }) {
 
 const AGENTS_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key, auto-generated" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id. Tenant scope (e.g., DoorDash)" },
   { field: "name", type: "text", required: "✓", description: 'Display name (e.g., "Accountant")' },
   { field: "role_icon", type: "text", required: "✓", description: 'Emoji for dashboard cards (e.g., "🧮")' },
   { field: "account_id", type: "UUID", required: "✓", description: "Your organization identifier" },
@@ -110,6 +111,7 @@ const AGENTS_ROWS: SchemaRow[] = [
 
 const TASK_EVENTS_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id. Inherited from the agent" },
   { field: "agent_id", type: "UUID", required: "✓", description: "FK → agents.id" },
   { field: "workflow_type", type: "text", required: "✓", description: 'Category: "invoice_processing", "support_ticket"' },
   { field: "task_subtype", type: "text", required: "✓", description: 'Specific type: "standard_invoice", "billing_inquiry"' },
@@ -127,6 +129,7 @@ const TASK_EVENTS_ROWS: SchemaRow[] = [
 
 const CORRECTION_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id. Inherited from the agent" },
   { field: "task_id", type: "UUID", required: "✓", description: "FK → task_events.id (the task that was corrected)" },
   { field: "agent_id", type: "UUID", required: "✓", description: "FK → agents.id" },
   { field: "corrected_field", type: "text", required: "✓", description: 'What was wrong: "expense_category", "priority"' },
@@ -139,6 +142,7 @@ const CORRECTION_ROWS: SchemaRow[] = [
 
 const BASELINE_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id. Inherited from the agent" },
   { field: "agent_id", type: "UUID", required: "✓", description: "FK → agents.id" },
   { field: "workflow_type", type: "text", required: "✓", description: "Must match task_events.workflow_type" },
   { field: "tasks_per_week", type: "integer", required: "✓", description: "How many tasks the human team handled weekly" },
