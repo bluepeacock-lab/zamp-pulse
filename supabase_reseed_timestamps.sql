@@ -1,108 +1,124 @@
--- ZampScan: redistribute task_events timestamps & outcomes
+-- ZampScan: redistribute task_events timestamps & outcomes per agent
 -- Run in Supabase SQL Editor. Safe to re-run.
 
 BEGIN;
 
-WITH numbered AS (
+WITH agents AS (
+  SELECT id, name FROM public.agents
+),
+numbered AS (
   SELECT
-    id,
-    task_id,
-    CASE
-      WHEN task_id LIKE 'INV-4%' THEN 'acc_may'
-      WHEN task_id LIKE 'INV-5%' THEN 'acc_jun'
-      WHEN task_id LIKE 'TKT-7%' THEN 'sup_may'
-      WHEN task_id LIKE 'TKT-8%' THEN 'sup_jun'
-    END AS cohort,
-    CASE
-      WHEN task_id LIKE 'INV-4%' THEN (substring(task_id from 5)::int - 4000)
-      WHEN task_id LIKE 'INV-5%' THEN (substring(task_id from 5)::int - 5000)
-      WHEN task_id LIKE 'TKT-7%' THEN (substring(task_id from 5)::int - 700)
-      WHEN task_id LIKE 'TKT-8%' THEN (substring(task_id from 5)::int - 800)
-    END AS i
-  FROM public.task_events
+    te.id,
+    te.agent_id,
+    a.name AS agent_name,
+    row_number() OVER (PARTITION BY te.agent_id ORDER BY te.source_reference) AS i,
+    count(*) OVER (PARTITION BY te.agent_id) AS n
+  FROM public.task_events te
+  JOIN agents a ON a.id = te.agent_id
 ),
 computed AS (
   SELECT
     id,
-    cohort,
+    agent_id,
+    agent_name,
     i,
-    ((i * 37) % 100) + 1 AS scatter,
+    n,
+    CASE WHEN i <= n/2 THEN 'may' ELSE 'jun' END AS cohort,
+    -- Scatter offset differs per agent so the two agents get distinct ATCRs
+    ((i * 37 + CASE
+                  WHEN agent_name ILIKE 'Accountant%' THEN 3
+                  WHEN agent_name ILIKE 'Support%' THEN 17
+                  ELSE 0
+                END) % 100) + 1 AS scatter,
     CASE
-      WHEN cohort IN ('acc_may','sup_may') THEN
-        make_timestamptz(
-          2026, 5,
-          1 + ((i - 1) * 31 / 100),
-          8 + ((i * 7) % 10),
-          (i * 13) % 60,
-          ((i * 17) % 60)::double precision,
-          'UTC'
-        )
-      WHEN cohort IN ('acc_jun','sup_jun') THEN
-        make_timestamptz(
-          2026, 6,
-          1 + ((i - 1) * 23 / 100),
-          8 + ((i * 7) % 10),
-          (i * 13) % 60,
-          ((i * 17) % 60)::double precision,
-          'UTC'
-        )
+      WHEN i <= n/2 THEN make_timestamptz(
+        2026, 5,
+        1 + ((i - 1) * 31 / (n/2)),
+        8 + ((i * 7) % 10),
+        (i * 13) % 60,
+        ((i * 17) % 60)::double precision,
+        'UTC'
+      )
+      ELSE make_timestamptz(
+        2026, 6,
+        1 + ((i - n/2 - 1) * 23 / (n - n/2)),
+        8 + ((i * 7) % 10),
+        (i * 13) % 60,
+        ((i * 17) % 60)::double precision,
+        'UTC'
+      )
     END AS new_ts_received,
     1 + ((i * 11) % 3) AS start_delay_s,
     30 + ((i * 23) % 91) AS resolve_minutes
   FROM numbered
-  WHERE cohort IS NOT NULL
+),
+with_outcome AS (
+  SELECT
+    c.*,
+    CASE
+      WHEN agent_name ILIKE 'Accountant%' THEN
+        CASE
+          WHEN cohort = 'may' THEN
+            CASE WHEN scatter <= 82 THEN 'completed'
+                 WHEN scatter <= 90 THEN 'escalated'
+                 WHEN scatter <= 97 THEN 'corrected'
+                 ELSE 'failed' END
+          ELSE
+            CASE WHEN scatter <= 92 THEN 'completed'
+                 WHEN scatter <= 96 THEN 'escalated'
+                 WHEN scatter <= 99 THEN 'corrected'
+                 ELSE 'failed' END
+        END
+      WHEN agent_name ILIKE 'Support%' THEN
+        CASE
+          WHEN cohort = 'may' THEN
+            CASE WHEN scatter <= 76 THEN 'completed'
+                 WHEN scatter <= 86 THEN 'escalated'
+                 WHEN scatter <= 95 THEN 'corrected'
+                 ELSE 'failed' END
+          ELSE
+            CASE WHEN scatter <= 86 THEN 'completed'
+                 WHEN scatter <= 93 THEN 'escalated'
+                 WHEN scatter <= 98 THEN 'corrected'
+                 ELSE 'failed' END
+        END
+      ELSE
+        CASE WHEN scatter <= 80 THEN 'completed'
+             WHEN scatter <= 88 THEN 'escalated'
+             WHEN scatter <= 96 THEN 'corrected'
+             ELSE 'failed' END
+    END AS new_outcome
+  FROM computed c
 )
 UPDATE public.task_events te
 SET
-  ts_received  = c.new_ts_received,
-  ts_started   = c.new_ts_received + (c.start_delay_s || ' seconds')::interval,
-  ts_completed = c.new_ts_received
-                  + (c.start_delay_s || ' seconds')::interval
+  ts_received  = w.new_ts_received,
+  ts_started   = w.new_ts_received + (w.start_delay_s || ' seconds')::interval,
+  ts_completed = w.new_ts_received
+                  + (w.start_delay_s || ' seconds')::interval
                   + (COALESCE(te.processing_seconds, 30) || ' seconds')::interval,
   ts_resolved  = CASE
-    WHEN (
-      CASE
-        WHEN c.cohort IN ('acc_may','sup_may') THEN
-          CASE WHEN c.scatter <= 80 THEN 'completed'
-               WHEN c.scatter <= 88 THEN 'escalated'
-               WHEN c.scatter <= 96 THEN 'corrected'
-               ELSE 'failed' END
-        ELSE
-          CASE WHEN c.scatter <= 90 THEN 'completed'
-               WHEN c.scatter <= 95 THEN 'escalated'
-               WHEN c.scatter <= 98 THEN 'corrected'
-               ELSE 'failed' END
-      END
-    ) = 'escalated'
-    THEN c.new_ts_received
-         + (c.start_delay_s || ' seconds')::interval
+    WHEN w.new_outcome = 'escalated'
+    THEN w.new_ts_received
+         + (w.start_delay_s || ' seconds')::interval
          + (COALESCE(te.processing_seconds, 30) || ' seconds')::interval
-         + (c.resolve_minutes || ' minutes')::interval
+         + (w.resolve_minutes || ' minutes')::interval
     ELSE NULL
   END,
-  outcome = CASE
-    WHEN c.cohort IN ('acc_may','sup_may') THEN
-      CASE WHEN c.scatter <= 80 THEN 'completed'
-           WHEN c.scatter <= 88 THEN 'escalated'
-           WHEN c.scatter <= 96 THEN 'corrected'
-           ELSE 'failed' END
-    ELSE
-      CASE WHEN c.scatter <= 90 THEN 'completed'
-           WHEN c.scatter <= 95 THEN 'escalated'
-           WHEN c.scatter <= 98 THEN 'corrected'
-           ELSE 'failed' END
-  END,
-  created_at = c.new_ts_received
-FROM computed c
-WHERE te.id = c.id;
+  outcome = w.new_outcome,
+  created_at = w.new_ts_received
+FROM with_outcome w
+WHERE te.id = w.id;
 
 COMMIT;
 
--- Verify
+-- Verify per-agent monthly outcomes
 SELECT
-  date_trunc('month', ts_received)::date AS month,
-  outcome,
+  a.name,
+  date_trunc('month', te.ts_received)::date AS month,
+  te.outcome,
   count(*)
-FROM public.task_events
-GROUP BY 1, 2
-ORDER BY 1, 2;
+FROM public.task_events te
+JOIN public.agents a ON a.id = te.agent_id
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3;
