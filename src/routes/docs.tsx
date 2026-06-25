@@ -297,7 +297,7 @@ function TabbedExamples() {
 }
 
 const GLOSSARY: { term: string; def: string }[] = [
-  { term: "ATCR", def: "Autonomous Task Completion Rate. The percentage of tasks an agent handles end-to-end without any human involvement. ZampScan's North Star metric." },
+  { term: "ATCR", def: "Autonomous Task Completion Rate. The percentage of tasks an agent handles end-to-end without any human involvement. ZampPulse's North Star metric." },
   { term: "Autonomous Task", def: "A task where outcome = 'completed' and no correction was applied. The human never touched it." },
   { term: "Escalation", def: "When the agent routes a task to a human because its confidence is too low to act autonomously. A sign of good judgment, not failure." },
   { term: "Correction", def: "When a human fixes the agent's completed output after the fact. Indicates the agent was confident but wrong." },
@@ -434,16 +434,16 @@ function DocsPage() {
         <section>
           <div className="mb-6">
             <h1 id="overview" className="scroll-mt-24 text-3xl font-semibold text-gray-900">
-              ZampScan Developer Docs
+              ZampPulse Developer Docs
             </h1>
             <p className="text-gray-500 mt-2">
-              Everything you need to integrate AI agents with ZampScan.
+              Everything you need to integrate AI agents with ZampPulse.
             </p>
             <div className="mt-4 border-b border-gray-200" />
           </div>
           <Card className="p-6 mb-6">
             <p className="text-gray-700 leading-relaxed">
-              ZampScan is a read-heavy analytics layer. AI agents push structured events into
+              ZampPulse is a read-heavy analytics layer. AI agents push structured events into
               the database as they process tasks. The dashboard reads this data and calculates all
               metrics — ATCR, accuracy, escalation rate, coaching impact, ROI, and churn risk —
               automatically. No additional configuration needed. Insert a row, and the dashboard
@@ -470,7 +470,7 @@ function DocsPage() {
             {[
               { title: "AI Agents", role: "WRITE", items: ["Accountant", "Support Specialist", "Any new agent"] },
               { title: "Supabase (PostgreSQL)", role: "STORE", items: ["task_events", "correction_events", "baselines"] },
-              { title: "ZampScan Dashboard", role: "READ", items: ["ATCR", "Trends", "Health"] },
+              { title: "ZampPulse Dashboard", role: "READ", items: ["ATCR", "Trends", "Health"] },
             ].map((node, idx, arr) => (
               <div key={node.title} className="flex-1 flex items-center gap-3">
                 <Card className="flex-1 p-5">
@@ -492,7 +492,7 @@ function DocsPage() {
           </div>
           <Card className="p-5 mt-6">
             <p className="text-sm text-gray-700 leading-relaxed">
-              ZampScan is decoupled from agent logic. Agents don't need to know about the
+              ZampPulse is decoupled from agent logic. Agents don't need to know about the
               dashboard. They just push events into the database using the Supabase client. The
               dashboard reads and computes everything independently.
             </p>
@@ -608,7 +608,7 @@ function DocsPage() {
         <section>
           <SectionHeading
             id="pages"
-            title="ZampScan Pages"
+            title="ZampPulse Pages"
             subtitle="What each page shows and how it uses the data"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
