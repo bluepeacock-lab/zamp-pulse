@@ -260,13 +260,13 @@ function DashboardContent({
   const total = tasks.length;
   const atcrAll = total ? (counts.completed / total) * 100 : 0;
 
-  // Trend vs prior period
-  const periodDays = period === 60 ? 30 : period;
-  const currTasks = filterByDays(tasks, periodDays);
-  const prevTasks = priorPeriod(tasks, periodDays);
+  // Trend vs prior period (fixed 30d window, independent of chart period selector)
+  const currTasks = filterByDays(tasks, 30);
+  const prevTasks = priorPeriod(tasks, 30);
   const currAtcr = computeAtcr(currTasks);
   const prevAtcr = computeAtcr(prevTasks);
   const trendDelta = currAtcr - prevAtcr;
+
 
   // Card 1 — Accuracy (completed/(completed+corrected))
   const accDen = counts.completed + counts.corrected;
