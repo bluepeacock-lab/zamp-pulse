@@ -207,6 +207,7 @@ const CODE_REGISTER = `const { data: agent } = await supabase
 const AGENT_ID = agent.id`;
 
 const CODE_COMPLETED = `await supabase.from('task_events').insert({
+  client_id: CLIENT_ID,  // DoorDash tenant
   agent_id: AGENT_ID,
   workflow_type: 'invoice_processing',
   task_subtype: 'standard_invoice',
@@ -223,6 +224,7 @@ const CODE_COMPLETED = `await supabase.from('task_events').insert({
 })`;
 
 const CODE_ESCALATED = `await supabase.from('task_events').insert({
+  client_id: CLIENT_ID,  // DoorDash tenant
   agent_id: AGENT_ID,
   workflow_type: 'invoice_processing',
   task_subtype: 'multi_currency_invoice',
@@ -247,6 +249,7 @@ const CODE_CORRECTED = `// Insert the task
 const { data: task } = await supabase
   .from('task_events')
   .insert({
+    client_id: CLIENT_ID,  // DoorDash tenant
     agent_id: AGENT_ID,
     workflow_type: 'invoice_processing',
     task_subtype: 'expense_report',
@@ -265,6 +268,7 @@ const { data: task } = await supabase
 
 // Then log the correction detail
 await supabase.from('correction_events').insert({
+  client_id: CLIENT_ID,
   task_id: task.id,
   agent_id: AGENT_ID,
   corrected_field: 'expense_category',
@@ -276,6 +280,7 @@ await supabase.from('correction_events').insert({
 })`;
 
 const CODE_FAILED = `await supabase.from('task_events').insert({
+  client_id: CLIENT_ID,  // DoorDash tenant
   agent_id: AGENT_ID,
   workflow_type: 'invoice_processing',
   task_subtype: 'standard_invoice',
