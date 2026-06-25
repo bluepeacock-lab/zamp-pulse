@@ -349,7 +349,7 @@ function DashboardContent({
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight" style={{ color: GRAY_900 }}>
-            Zamp Scan
+            ZampScan
           </h1>
           <p className="text-sm" style={{ color: GRAY_500 }}>
             Executive performance overview
@@ -609,7 +609,7 @@ function DashboardContent({
         </div>
       </div>
       <footer className="text-xs text-gray-400 text-center py-4">
-        Powered by Zamp Scan v1.0 · Demo data: May–Jun 2026
+        Powered by ZampScan v1.0 · Demo data: May–Jun 2026
       </footer>
     </div>
   );

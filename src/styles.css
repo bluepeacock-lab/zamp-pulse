@@ -141,4 +141,11 @@
     background-color: var(--color-background);
     color: var(--color-foreground);
   }
+
+  button,
+  [type="button"],
+  [type="submit"],
+  [role="button"] {
+    cursor: pointer;
+  }
 }

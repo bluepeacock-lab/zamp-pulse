@@ -481,7 +481,7 @@ function AgentDetailContent({
                 See your ROI in hours and dollars
               </h3>
               <p className="text-sm mb-4" style={{ color: GRAY_500 }}>
-                Tell us how your team handled this work before Zamp. Takes 2 minutes.
+                Tell us how your team handled this work before ZampScan. Takes 2 minutes.
               </p>
               <button
                 onClick={onSetup}
