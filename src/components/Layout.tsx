@@ -93,6 +93,7 @@ export default function Layout({ children }: { children?: ReactNode }) {
             <NavLink to="/dashboard" label="Dashboard" />
             <NavLink to="/tasks" label="Tasks" />
             <NavLink to="/health" label="Health" />
+            <NavLink to="/docs" label="Docs" variant="dev" />
           </nav>
           <div className="hidden sm:flex items-center gap-3">
             <span className="text-sm text-gray-500">{session.user.email}</span>
