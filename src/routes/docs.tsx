@@ -155,12 +155,26 @@ const BASELINE_ROWS: SchemaRow[] = [
 
 const HEALTH_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "client_id", type: "UUID", required: "—", description: "FK → clients.id. Optional cross-client signal" },
   { field: "account_id", type: "UUID", required: "✓", description: "Organization identifier" },
   { field: "signal_name", type: "text", required: "✓", description: "Signal key (see glossary)" },
   { field: "signal_value", type: "decimal", required: "—", description: "Current measurement" },
   { field: "points", type: "integer", required: "✓", description: "Churn risk points (0 if healthy)" },
   { field: "triggered", type: "boolean", required: "✓", description: "Is this signal firing?" },
   { field: "details", type: "text", required: "—", description: "Human-readable status description" },
+];
+
+const CLIENTS_ROWS: SchemaRow[] = [
+  { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "slug", type: "text", required: "✓", description: 'Unique tenant slug: "doordash"' },
+  { field: "name", type: "text", required: "✓", description: 'Display name: "DoorDash"' },
+  { field: "created_at", type: "timestamptz", required: "auto", description: "Auto-set on insert" },
+];
+
+const USER_CLIENTS_ROWS: SchemaRow[] = [
+  { field: "user_id", type: "UUID", required: "✓", description: "FK → auth.users.id" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id" },
+  { field: "is_default", type: "boolean", required: "✓", description: "Whether this is the user's default client" },
 ];
 
 const CODE_CONNECT = `import { createClient } from '@supabase/supabase-js'
