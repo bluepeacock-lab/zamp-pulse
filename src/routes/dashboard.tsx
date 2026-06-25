@@ -489,14 +489,14 @@ function DashboardContent({
           <MiniMetric
             label="Accuracy"
             value={`${accuracy.toFixed(1)}%`}
-            delta={`${accuracy30 >= accuracy ? "▲" : "▼"} 30d: ${accuracy30.toFixed(1)}%`}
-            positive={accuracy30 >= accuracy}
+            delta={`${accuracy >= prevAccuracy ? "▲" : "▼"} prior: ${prevAccuracy.toFixed(1)}%`}
+            positive={accuracy >= prevAccuracy}
           />
           <MiniMetric
             label="Escalation"
             value={`${escalationRate.toFixed(1)}%`}
-            delta={`${esc30 <= escalationRate ? "▼" : "▲"} 30d: ${esc30.toFixed(1)}%`}
-            positive={esc30 <= escalationRate}
+            delta={`${escalationRate <= prevEscRate ? "▼" : "▲"} prior: ${prevEscRate.toFixed(1)}%`}
+            positive={escalationRate <= prevEscRate}
           />
           <MiniMetric
             label="Avg Processing"
