@@ -31,7 +31,7 @@ const GRAY_900 = "#1A1A1A";
 type TaskEvent = {
   id: string;
   agent_id: string;
-  status: string; // 'completed' | 'escalated' | 'corrected' | 'failed'
+  outcome: string; // 'completed' | 'escalated' | 'corrected' | 'failed'
   processing_seconds: number | null;
   created_at: string;
 };
@@ -70,7 +70,7 @@ function formatShortDate(d: string) {
 
 function computeAtcr(tasks: TaskEvent[]) {
   if (tasks.length === 0) return 0;
-  const completed = tasks.filter((t) => t.status === "completed").length;
+  const completed = tasks.filter((t) => t.outcome === "completed").length;
   return (completed / tasks.length) * 100;
 }
 
@@ -96,7 +96,7 @@ function dailyAtcr(tasks: TaskEvent[]) {
     const k = dayKey(t.created_at);
     const b = buckets.get(k) ?? { total: 0, completed: 0 };
     b.total += 1;
-    if (t.status === "completed") b.completed += 1;
+    if (t.outcome === "completed") b.completed += 1;
     buckets.set(k, b);
   }
   return [...buckets.entries()]
@@ -141,7 +141,13 @@ function DashboardPage() {
         if (a.error) throw a.error;
         if (c.error) throw c.error;
         if (b.error) throw b.error;
-        setTasks((t.data ?? []) as TaskEvent[]);
+        const taskRows = (t.data ?? []) as TaskEvent[];
+        console.log("[dashboard] task_events count:", taskRows.length);
+        console.log(
+          "[dashboard] unique outcome values:",
+          Array.from(new Set(taskRows.map((r) => r.outcome))),
+        );
+        setTasks(taskRows);
         setAgents((a.data ?? []) as Agent[]);
         setCorrections((c.data ?? []) as CorrectionEvent[]);
         setBaselines((b.data ?? []) as Baseline[]);
@@ -244,23 +250,23 @@ function DashboardContent({
   const counts = useMemo(() => {
     const c = { completed: 0, escalated: 0, corrected: 0, failed: 0 };
     for (const t of tasks) {
-      if (t.status === "completed") c.completed += 1;
-      else if (t.status === "escalated") c.escalated += 1;
-      else if (t.status === "corrected") c.corrected += 1;
-      else if (t.status === "failed") c.failed += 1;
+      if (t.outcome === "completed") c.completed += 1;
+      else if (t.outcome === "escalated") c.escalated += 1;
+      else if (t.outcome === "corrected") c.corrected += 1;
+      else if (t.outcome === "failed") c.failed += 1;
     }
     return c;
   }, [tasks]);
   const total = tasks.length;
   const atcrAll = total ? (counts.completed / total) * 100 : 0;
 
-  // Trend vs prior period
-  const periodDays = period === 60 ? 30 : period;
-  const currTasks = filterByDays(tasks, periodDays);
-  const prevTasks = priorPeriod(tasks, periodDays);
+  // Trend vs prior period (fixed 30d window, independent of chart period selector)
+  const currTasks = filterByDays(tasks, 30);
+  const prevTasks = priorPeriod(tasks, 30);
   const currAtcr = computeAtcr(currTasks);
   const prevAtcr = computeAtcr(prevTasks);
   const trendDelta = currAtcr - prevAtcr;
+
 
   // Card 1 — Accuracy (completed/(completed+corrected))
   const accDen = counts.completed + counts.corrected;
@@ -268,8 +274,8 @@ function DashboardContent({
   const last30 = filterByDays(tasks, 30);
   const last30Counts = last30.reduce(
     (a, t) => {
-      if (t.status === "completed") a.c += 1;
-      else if (t.status === "corrected") a.x += 1;
+      if (t.outcome === "completed") a.c += 1;
+      else if (t.outcome === "corrected") a.x += 1;
       return a;
     },
     { c: 0, x: 0 },
@@ -279,7 +285,7 @@ function DashboardContent({
   // Card 2 — Escalation
   const escalationRate = total ? (counts.escalated / total) * 100 : 0;
   const esc30Den = last30.length;
-  const esc30 = esc30Den ? (last30.filter((t) => t.status === "escalated").length / esc30Den) * 100 : 0;
+  const esc30 = esc30Den ? (last30.filter((t) => t.outcome === "escalated").length / esc30Den) * 100 : 0;
 
   // Card 3 — Processing time
   const procTimes = tasks.map((t) => t.processing_seconds ?? 0).filter((n) => n > 0);
@@ -301,26 +307,8 @@ function DashboardContent({
     <div className="space-y-4">
       {/* Hero */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="text-xs uppercase tracking-wider" style={{ color: GRAY_500 }}>
-            Autonomous Task Completion Rate
-          </div>
-          <div className="flex gap-1">
-            {[7, 30, 60].map((d) => (
-              <button
-                key={d}
-                onClick={() => setPeriod(d as 7 | 30 | 60)}
-                className="px-3 py-1 rounded-md text-xs font-medium transition-colors"
-                style={
-                  period === d
-                    ? { backgroundColor: TEAL, color: "white" }
-                    : { backgroundColor: "#F3F4F6", color: GRAY_500 }
-                }
-              >
-                {d}d
-              </button>
-            ))}
-          </div>
+        <div className="text-xs uppercase tracking-wider mb-4" style={{ color: GRAY_500 }}>
+          Autonomous Task Completion Rate
         </div>
 
         <div className="flex items-baseline gap-4 mb-5">
@@ -329,9 +317,10 @@ function DashboardContent({
           </div>
           <div className="text-sm font-medium" style={{ color: trendDelta >= 0 ? GREEN : RED }}>
             {trendDelta >= 0 ? "▲" : "▼"} {trendDelta >= 0 ? "+" : ""}
-            {trendDelta.toFixed(1)}% vs prior {periodDays}d
+            {trendDelta.toFixed(1)}% last 30d vs prior 30d
           </div>
         </div>
+
 
         <div className="flex h-3 w-full rounded-full overflow-hidden mb-2">
           {[
@@ -409,8 +398,26 @@ function DashboardContent({
 
       {/* Trend chart */}
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="text-sm font-semibold mb-4" style={{ color: GRAY_900 }}>
-          ATCR Trend
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-sm font-semibold" style={{ color: GRAY_900 }}>
+            ATCR Trend
+          </div>
+          <div className="flex gap-1">
+            {[7, 30, 60].map((d) => (
+              <button
+                key={d}
+                onClick={() => setPeriod(d as 7 | 30 | 60)}
+                className="px-3 py-1 rounded-md text-xs font-medium transition-colors"
+                style={
+                  period === d
+                    ? { backgroundColor: TEAL, color: "white" }
+                    : { backgroundColor: "#F3F4F6", color: GRAY_500 }
+                }
+              >
+                {d}d
+              </button>
+            ))}
+          </div>
         </div>
         <div style={{ width: "100%", height: 300 }}>
           <ResponsiveContainer>
@@ -517,9 +524,9 @@ function AgentCard({
   onClick: () => void;
 }) {
   const total = tasks.length;
-  const completed = tasks.filter((t) => t.status === "completed").length;
-  const corrected = tasks.filter((t) => t.status === "corrected").length;
-  const escalated = tasks.filter((t) => t.status === "escalated").length;
+  const completed = tasks.filter((t) => t.outcome === "completed").length;
+  const corrected = tasks.filter((t) => t.outcome === "corrected").length;
+  const escalated = tasks.filter((t) => t.outcome === "escalated").length;
   const atcr = total ? (completed / total) * 100 : 0;
   const accDen = completed + corrected;
   const accuracy = accDen ? (completed / accDen) * 100 : 0;
