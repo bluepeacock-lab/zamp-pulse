@@ -1,21 +1,34 @@
 import { Link, Outlet, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
+import { Code2 } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-function NavLink({ to, label }: { to: string; label: string }) {
+function NavLink({
+  to,
+  label,
+  variant = "default",
+}: {
+  to: string;
+  label: string;
+  variant?: "default" | "dev";
+}) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const active = pathname === to || pathname.startsWith(to + "/");
+  const isDev = variant === "dev";
+  const activeColor = isDev ? "text-indigo-600 border-indigo-500" : "text-teal-600 border-teal-500";
+  const idleColor = isDev
+    ? "text-indigo-500/80 hover:text-indigo-700 border-transparent"
+    : "text-gray-500 hover:text-gray-900 border-transparent";
   return (
     <Link
       to={to}
       className={
-        "px-1 py-4 text-sm font-medium border-b-2 transition-colors duration-200 " +
-        (active
-          ? "text-teal-600 border-teal-500"
-          : "text-gray-500 hover:text-gray-900 border-transparent")
+        "inline-flex items-center gap-1.5 px-1 py-4 text-sm font-medium border-b-2 transition-colors duration-200 " +
+        (active ? activeColor : idleColor)
       }
     >
+      {isDev && <Code2 className="h-3.5 w-3.5" />}
       {label}
     </Link>
   );
@@ -80,6 +93,7 @@ export default function Layout({ children }: { children?: ReactNode }) {
             <NavLink to="/dashboard" label="Dashboard" />
             <NavLink to="/tasks" label="Tasks" />
             <NavLink to="/health" label="Health" />
+            <NavLink to="/docs" label="Docs" variant="dev" />
           </nav>
           <div className="hidden sm:flex items-center gap-3">
             <span className="text-sm text-gray-500">{session.user.email}</span>
