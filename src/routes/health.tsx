@@ -95,10 +95,26 @@ function HealthPage() {
   const [signals, setSignals] = useState<Signal[] | null>(null);
 
   useEffect(() => {
-    supabase
-      .from("health_signals")
-      .select("id, signal_name, details, points, triggered")
-      .then(({ data }) => setSignals((data as Signal[]) ?? []));
+    (async () => {
+      const [staticRes, tasksRes, agentsRes, baselinesRes] = await Promise.all([
+        supabase
+          .from("health_signals")
+          .select("id, signal_name, details, points, triggered")
+          .in("signal_name", ["engagement_drop", "report_unopened"]),
+        supabase.from("task_events").select("outcome, ts_received"),
+        supabase.from("agents").select("id"),
+        supabase.from("baselines").select("agent_id"),
+      ]);
+
+      const tasks = (tasksRes.data ?? []) as { outcome: string; ts_received: string }[];
+      const agents = (agentsRes.data ?? []) as { id: string }[];
+      const baselines = (baselinesRes.data ?? []) as { agent_id: string }[];
+      const staticSignals = (staticRes.data ?? []) as Signal[];
+
+      const computed = computeSignals(tasks, agents, baselines);
+      const merged: Signal[] = [...computed, ...staticSignals];
+      setSignals(merged);
+    })();
   }, []);
 
   return (
