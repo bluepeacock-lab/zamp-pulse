@@ -248,64 +248,63 @@ function DashboardContent({
 }) {
   const navigate = useNavigate();
 
-  // Period-scoped tasks for chart and trend
+  // Period-scoped tasks — drives ENTIRE dashboard
+  const periodDays = period;
   const periodTasks = useMemo(
     () => filterByDays(tasks, period === 60 ? null : period),
     [tasks, period],
   );
 
-  // ATCR breakdown over ALL tasks (hero header counts)
+  // Outcome breakdown over period
   const counts = useMemo(() => {
     const c = { completed: 0, escalated: 0, corrected: 0, failed: 0 };
-    for (const t of tasks) {
+    for (const t of periodTasks) {
       if (t.outcome === "completed") c.completed += 1;
       else if (t.outcome === "escalated") c.escalated += 1;
       else if (t.outcome === "corrected") c.corrected += 1;
       else if (t.outcome === "failed") c.failed += 1;
     }
     return c;
-  }, [tasks]);
-  const total = tasks.length;
+  }, [periodTasks]);
+  const total = periodTasks.length;
   const atcrAll = total ? (counts.completed / total) * 100 : 0;
 
-  // Trend vs prior period (fixed 30d window, independent of chart period selector)
-  const currTasks = filterByDays(tasks, 30);
-  const prevTasks = priorPeriod(tasks, 30);
-  const currAtcr = computeAtcr(currTasks);
+  // Trend vs prior equivalent period
+  const prevTasks = priorPeriod(tasks, periodDays);
   const prevAtcr = computeAtcr(prevTasks);
-  const trendDelta = currAtcr - prevAtcr;
+  const trendDelta = atcrAll - prevAtcr;
+  const periodLabel = `vs prior ${periodDays}d`;
 
-
-  // Card 1 — Accuracy (completed/(completed+corrected))
+  // Card 1 — Accuracy
   const accDen = counts.completed + counts.corrected;
   const accuracy = accDen ? (counts.completed / accDen) * 100 : 0;
-  const last30 = filterByDays(tasks, 30);
-  const last30Counts = last30.reduce(
-    (a, t) => {
-      if (t.outcome === "completed") a.c += 1;
-      else if (t.outcome === "corrected") a.x += 1;
-      return a;
-    },
-    { c: 0, x: 0 },
-  );
-  const accuracy30 = last30Counts.c + last30Counts.x ? (last30Counts.c / (last30Counts.c + last30Counts.x)) * 100 : 0;
+  const prevAccDen = prevTasks.filter((t) => t.outcome === "completed" || t.outcome === "corrected").length;
+  const prevAccuracy = prevAccDen
+    ? (prevTasks.filter((t) => t.outcome === "completed").length / prevAccDen) * 100
+    : 0;
 
   // Card 2 — Escalation
   const escalationRate = total ? (counts.escalated / total) * 100 : 0;
-  const esc30Den = last30.length;
-  const esc30 = esc30Den ? (last30.filter((t) => t.outcome === "escalated").length / esc30Den) * 100 : 0;
+  const prevEscRate = prevTasks.length
+    ? (prevTasks.filter((t) => t.outcome === "escalated").length / prevTasks.length) * 100
+    : 0;
 
-  // Card 3 — Processing time
-  const procTimes = tasks.map((t) => t.processing_seconds ?? 0).filter((n) => n > 0);
+  // Card 3 — Processing time (period scoped)
+  const procTimes = periodTasks.map((t) => t.processing_seconds ?? 0).filter((n) => n > 0);
   const avgProc = procTimes.length ? procTimes.reduce((a, b) => a + b, 0) / procTimes.length : 0;
   const avgBaselineMin = baselines.length
     ? baselines.reduce((a, b) => a + (b.minutes_per_task ?? 0), 0) / baselines.length
     : 0;
   const speedup = avgProc > 0 && avgBaselineMin > 0 ? (avgBaselineMin * 60) / avgProc : 0;
 
-  // Card 4 — Coaching
-  const totalCorrections = corrections.length;
-  const generalized = corrections.filter((c) => c.generalized).length;
+  // Card 4 — Coaching (period scoped)
+  const periodCorrections = useMemo(() => {
+    if (period === 60) return corrections;
+    const cutoff = Date.now() - period * 86400000;
+    return corrections.filter((c) => new Date(c.created_at).getTime() >= cutoff);
+  }, [corrections, period]);
+  const totalCorrections = periodCorrections.length;
+  const generalized = periodCorrections.filter((c) => c.generalized).length;
   const genPct = totalCorrections ? (generalized / totalCorrections) * 100 : 0;
 
   // Trend chart — 7-day rolling average for 30d/60d; raw for 7d
@@ -401,7 +400,7 @@ function DashboardContent({
                   style={{ color: trendDelta >= 0 ? TEAL : RED }}
                 >
                   {trendDelta >= 0 ? "▲ +" : "▼ "}
-                  {trendDelta.toFixed(1)}% vs prior 30d
+                  {trendDelta.toFixed(1)}% {periodLabel}
                 </span>
               </div>
             </div>
@@ -490,14 +489,14 @@ function DashboardContent({
           <MiniMetric
             label="Accuracy"
             value={`${accuracy.toFixed(1)}%`}
-            delta={`${accuracy30 >= accuracy ? "▲" : "▼"} 30d: ${accuracy30.toFixed(1)}%`}
-            positive={accuracy30 >= accuracy}
+            delta={`${accuracy >= prevAccuracy ? "▲" : "▼"} prior: ${prevAccuracy.toFixed(1)}%`}
+            positive={accuracy >= prevAccuracy}
           />
           <MiniMetric
             label="Escalation"
             value={`${escalationRate.toFixed(1)}%`}
-            delta={`${esc30 <= escalationRate ? "▼" : "▲"} 30d: ${esc30.toFixed(1)}%`}
-            positive={esc30 <= escalationRate}
+            delta={`${escalationRate <= prevEscRate ? "▼" : "▲"} prior: ${prevEscRate.toFixed(1)}%`}
+            positive={escalationRate <= prevEscRate}
           />
           <MiniMetric
             label="Avg Processing"
@@ -602,7 +601,8 @@ function DashboardContent({
             <AgentCard
               key={a.id}
               agent={a}
-              tasks={tasks.filter((t) => t.agent_id === a.id)}
+              tasks={periodTasks.filter((t) => t.agent_id === a.id)}
+              allTasks={tasks.filter((t) => t.agent_id === a.id)}
               onClick={() => navigate({ to: "/agent/$agentId", params: { agentId: a.id } })}
             />
           ))}
@@ -665,10 +665,12 @@ function TrendTooltip({ active, payload, label }: any) {
 function AgentCard({
   agent,
   tasks,
+  allTasks,
   onClick,
 }: {
   agent: Agent;
   tasks: TaskEvent[];
+  allTasks: TaskEvent[];
   onClick: () => void;
 }) {
   const total = tasks.length;
@@ -680,21 +682,21 @@ function AgentCard({
   const accuracy = accDen ? (completed / accDen) * 100 : 0;
   const escalation = total ? (escalated / total) * 100 : 0;
 
-  // May vs June ATCR (current year)
-  const mayTasks = tasks.filter((t) => new Date(t.created_at).getUTCMonth() === 4);
-  const juneTasks = tasks.filter((t) => new Date(t.created_at).getUTCMonth() === 5);
+  // May vs June ATCR (using full history for improvement flag)
+  const mayTasks = allTasks.filter((t) => new Date(t.created_at).getUTCMonth() === 4);
+  const juneTasks = allTasks.filter((t) => new Date(t.created_at).getUTCMonth() === 5);
   const mayAtcr = computeAtcr(mayTasks);
   const juneAtcr = computeAtcr(juneTasks);
   const improving = juneAtcr > mayAtcr && juneTasks.length > 0 && mayTasks.length > 0;
 
-  // Sparkline: last 30 days
-  const daily = dailyAtcr(filterByDays(tasks, 60), 7);
+  // Sparkline: use period tasks
+  const daily = dailyAtcr(tasks, 7);
 
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className="bg-white rounded-xl shadow-sm p-5 cursor-pointer hover:shadow-md transition border border-transparent hover:border-teal-200"
-      style={{ borderColor: undefined }}
+      className="group text-left w-full bg-white rounded-xl shadow-sm p-5 cursor-pointer transition border border-zinc-200 hover:border-[#00C9A7] hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -723,6 +725,17 @@ function AgentCard({
       <div className="text-sm mt-2" style={{ color: GRAY_500 }}>
         Accuracy: {accuracy.toFixed(0)}% · Escalation: {escalation.toFixed(0)}% · Tasks: {total}
       </div>
-    </div>
+      <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEAL }}>
+          View agent details
+        </span>
+        <span
+          className="text-base font-bold transition-transform group-hover:translate-x-1"
+          style={{ color: TEAL }}
+        >
+          →
+        </span>
+      </div>
+    </button>
   );
 }
