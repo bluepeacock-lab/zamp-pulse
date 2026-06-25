@@ -33,10 +33,8 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      setLoading(true);
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
+
+    const load = async (userId: string | undefined) => {
       if (!userId) {
         if (!cancelled) {
           setClients([]);
@@ -45,49 +43,44 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         }
         return;
       }
-
-      // Fetch user's clients via join. Fall back to all clients if join empty.
+      setLoading(true);
       const { data: uc } = await supabase
         .from("user_clients")
         .select("client_id, is_default, clients(id, slug, name)")
         .eq("user_id", userId);
-
-      let list: Client[] = [];
       let defaultId: string | null = null;
       if (uc && uc.length) {
         for (const row of uc as any[]) {
-          if (row.clients) {
-            list.push(row.clients as Client);
-            if (row.is_default) defaultId = row.clients.id;
-          }
+          if (row.clients && row.is_default) defaultId = row.clients.id;
         }
       }
-      // Single-tenant visibility: only show DoorDash regardless of join rows.
       const { data: all } = await supabase
         .from("clients")
         .select("id, slug, name")
         .eq("slug", "doordash");
-      list = (all ?? []) as Client[];
-
+      const list = (all ?? []) as Client[];
       const stored = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
       const picked =
         list.find((c) => c.id === stored) ||
         list.find((c) => c.id === defaultId) ||
         list[0] ||
         null;
-
       if (!cancelled) {
         setClients(list);
         setActiveClientState(picked);
         setLoading(false);
       }
-    })();
+    };
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    supabase.auth.getSession().then(({ data }) => load(data.session?.user.id));
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         setClients([]);
         setActiveClientState(null);
         if (typeof window !== "undefined") localStorage.removeItem(STORAGE_KEY);
+      } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+        load(session?.user.id);
       }
     });
 
