@@ -354,9 +354,11 @@ function AgentDetailContent({
     failed: d.failed,
   }));
 
-  const recentTasks = [...tasks]
-    .sort((a, b) => (a.ts_received < b.ts_received ? 1 : -1))
-    .slice(0, 10);
+  const sortedTasks = [...tasks].sort((a, b) => (a.ts_received < b.ts_received ? 1 : -1));
+  const PAGE_SIZE = 10;
+  const totalPages = Math.max(1, Math.ceil(sortedTasks.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const recentTasks = sortedTasks.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   // ROI calc
   const autonomousTasks = counts.completed;
