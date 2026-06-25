@@ -62,15 +62,12 @@ export function ClientProvider({ children }: { children: ReactNode }) {
           }
         }
       }
-      if (!list.length) {
-        const { data: all } = await supabase
-          .from("clients")
-          .select("id, slug, name")
-          .order("name");
-        list = (all ?? []) as Client[];
-      }
-
-      list.sort((a, b) => a.name.localeCompare(b.name));
+      // Single-tenant visibility: only show DoorDash regardless of join rows.
+      const { data: all } = await supabase
+        .from("clients")
+        .select("id, slug, name")
+        .eq("slug", "doordash");
+      list = (all ?? []) as Client[];
 
       const stored = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
       const picked =
