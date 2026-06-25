@@ -155,11 +155,6 @@ function DashboardPage() {
         if (c.error) throw c.error;
         if (b.error) throw b.error;
         const taskRows = (t.data ?? []) as TaskEvent[];
-        console.log("[dashboard] task_events count:", taskRows.length);
-        console.log(
-          "[dashboard] unique outcome values:",
-          Array.from(new Set(taskRows.map((r) => r.outcome))),
-        );
         setTasks(taskRows);
         setAgents((a.data ?? []) as Agent[]);
         setCorrections((c.data ?? []) as CorrectionEvent[]);
@@ -511,7 +506,7 @@ function DashboardContent({
         </div>
       </div>
       <footer className="text-xs text-gray-400 text-center py-4">
-        Powered by Zamp Observatory v1.0 · Demo data: May–Jun 2026
+        Powered by Zamp Scan v1.0 · Demo data: May–Jun 2026
       </footer>
     </div>
   );
