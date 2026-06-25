@@ -674,6 +674,13 @@ function DocsPage() {
             </dl>
           </Card>
         </section>
+
+        {/* Footer */}
+        <footer className="pt-8 pb-4 border-t border-gray-200">
+          <p className="text-sm text-gray-500 text-center">
+            ZampPulse V1. For access Contact: rakeshgorkal@gmail.com
+          </p>
+        </footer>
       </div>
     </div>
   );
