@@ -8,6 +8,7 @@ export const Route = createFileRoute("/docs")({
 
 const SECTIONS = [
   { id: "overview", label: "Overview" },
+  { id: "tenancy", label: "Clients & Tenancy" },
   { id: "architecture", label: "Architecture" },
   { id: "data-flow", label: "Data Flow" },
   { id: "schema", label: "Database Schema" },
@@ -100,6 +101,7 @@ function SchemaTable({ rows }: { rows: SchemaRow[] }) {
 
 const AGENTS_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key, auto-generated" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id. Tenant scope (e.g., DoorDash)" },
   { field: "name", type: "text", required: "✓", description: 'Display name (e.g., "Accountant")' },
   { field: "role_icon", type: "text", required: "✓", description: 'Emoji for dashboard cards (e.g., "🧮")' },
   { field: "account_id", type: "UUID", required: "✓", description: "Your organization identifier" },
@@ -109,6 +111,7 @@ const AGENTS_ROWS: SchemaRow[] = [
 
 const TASK_EVENTS_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id. Inherited from the agent" },
   { field: "agent_id", type: "UUID", required: "✓", description: "FK → agents.id" },
   { field: "workflow_type", type: "text", required: "✓", description: 'Category: "invoice_processing", "support_ticket"' },
   { field: "task_subtype", type: "text", required: "✓", description: 'Specific type: "standard_invoice", "billing_inquiry"' },
@@ -126,6 +129,7 @@ const TASK_EVENTS_ROWS: SchemaRow[] = [
 
 const CORRECTION_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id. Inherited from the agent" },
   { field: "task_id", type: "UUID", required: "✓", description: "FK → task_events.id (the task that was corrected)" },
   { field: "agent_id", type: "UUID", required: "✓", description: "FK → agents.id" },
   { field: "corrected_field", type: "text", required: "✓", description: 'What was wrong: "expense_category", "priority"' },
@@ -138,6 +142,7 @@ const CORRECTION_ROWS: SchemaRow[] = [
 
 const BASELINE_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id. Inherited from the agent" },
   { field: "agent_id", type: "UUID", required: "✓", description: "FK → agents.id" },
   { field: "workflow_type", type: "text", required: "✓", description: "Must match task_events.workflow_type" },
   { field: "tasks_per_week", type: "integer", required: "✓", description: "How many tasks the human team handled weekly" },
@@ -150,12 +155,26 @@ const BASELINE_ROWS: SchemaRow[] = [
 
 const HEALTH_ROWS: SchemaRow[] = [
   { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "client_id", type: "UUID", required: "—", description: "FK → clients.id. Optional cross-client signal" },
   { field: "account_id", type: "UUID", required: "✓", description: "Organization identifier" },
   { field: "signal_name", type: "text", required: "✓", description: "Signal key (see glossary)" },
   { field: "signal_value", type: "decimal", required: "—", description: "Current measurement" },
   { field: "points", type: "integer", required: "✓", description: "Churn risk points (0 if healthy)" },
   { field: "triggered", type: "boolean", required: "✓", description: "Is this signal firing?" },
   { field: "details", type: "text", required: "—", description: "Human-readable status description" },
+];
+
+const CLIENTS_ROWS: SchemaRow[] = [
+  { field: "id", type: "UUID", required: "auto", description: "Primary key" },
+  { field: "slug", type: "text", required: "✓", description: 'Unique tenant slug: "doordash"' },
+  { field: "name", type: "text", required: "✓", description: 'Display name: "DoorDash"' },
+  { field: "created_at", type: "timestamptz", required: "auto", description: "Auto-set on insert" },
+];
+
+const USER_CLIENTS_ROWS: SchemaRow[] = [
+  { field: "user_id", type: "UUID", required: "✓", description: "FK → auth.users.id" },
+  { field: "client_id", type: "UUID", required: "✓", description: "FK → clients.id" },
+  { field: "is_default", type: "boolean", required: "✓", description: "Whether this is the user's default client" },
 ];
 
 const CODE_CONNECT = `import { createClient } from '@supabase/supabase-js'
@@ -165,9 +184,18 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )`;
 
+const CODE_CLIENT = `const { data: client } = await supabase
+  .from('clients')
+  .insert({ slug: 'doordash', name: 'DoorDash' })
+  .select()
+  .single()
+
+const CLIENT_ID = client.id`;
+
 const CODE_REGISTER = `const { data: agent } = await supabase
   .from('agents')
   .insert({
+    client_id: CLIENT_ID,  // DoorDash tenant
     name: 'Revenue Analyst',
     role_icon: '📊',
     account_id: 'your-org-uuid'
@@ -179,6 +207,7 @@ const CODE_REGISTER = `const { data: agent } = await supabase
 const AGENT_ID = agent.id`;
 
 const CODE_COMPLETED = `await supabase.from('task_events').insert({
+  client_id: CLIENT_ID,  // DoorDash tenant
   agent_id: AGENT_ID,
   workflow_type: 'invoice_processing',
   task_subtype: 'standard_invoice',
@@ -195,6 +224,7 @@ const CODE_COMPLETED = `await supabase.from('task_events').insert({
 })`;
 
 const CODE_ESCALATED = `await supabase.from('task_events').insert({
+  client_id: CLIENT_ID,  // DoorDash tenant
   agent_id: AGENT_ID,
   workflow_type: 'invoice_processing',
   task_subtype: 'multi_currency_invoice',
@@ -219,6 +249,7 @@ const CODE_CORRECTED = `// Insert the task
 const { data: task } = await supabase
   .from('task_events')
   .insert({
+    client_id: CLIENT_ID,  // DoorDash tenant
     agent_id: AGENT_ID,
     workflow_type: 'invoice_processing',
     task_subtype: 'expense_report',
@@ -237,6 +268,7 @@ const { data: task } = await supabase
 
 // Then log the correction detail
 await supabase.from('correction_events').insert({
+  client_id: CLIENT_ID,
   task_id: task.id,
   agent_id: AGENT_ID,
   corrected_field: 'expense_category',
@@ -248,6 +280,7 @@ await supabase.from('correction_events').insert({
 })`;
 
 const CODE_FAILED = `await supabase.from('task_events').insert({
+  client_id: CLIENT_ID,  // DoorDash tenant
   agent_id: AGENT_ID,
   workflow_type: 'invoice_processing',
   task_subtype: 'standard_invoice',
@@ -299,6 +332,8 @@ function TabbedExamples() {
 const GLOSSARY: { term: string; def: string }[] = [
   { term: "ATCR", def: "Autonomous Task Completion Rate. The percentage of tasks an agent handles end-to-end without any human involvement. ZampPulse's North Star metric." },
   { term: "Autonomous Task", def: "A task where outcome = 'completed' and no correction was applied. The human never touched it." },
+  { term: "Client", def: "The top-level tenant in ZampPulse. Every account (e.g., DoorDash) is a client. All data is scoped by client_id." },
+  { term: "Tenant", def: "A synonym for client. Used in the context of multi-tenancy and data isolation." },
   { term: "Escalation", def: "When the agent routes a task to a human because its confidence is too low to act autonomously. A sign of good judgment, not failure." },
   { term: "Correction", def: "When a human fixes the agent's completed output after the fact. Indicates the agent was confident but wrong." },
   { term: "Generalized Correction", def: "A correction that improved the agent's accuracy on similar future tasks. Measured by the accuracy_impact field." },
@@ -484,6 +519,57 @@ function DocsPage() {
           </div>
         </section>
 
+        {/* Clients & Tenancy */}
+        <section>
+          <SectionHeading
+            id="tenancy"
+            title="Clients & Tenancy"
+            subtitle="One account per client. Demo uses DoorDash."
+          />
+          <Card className="p-6 mb-6">
+            <p className="text-gray-700 leading-relaxed">
+              ZampPulse is built to support multiple clients — e.g., DoorDash, Uber, or any
+              enterprise account. Each client is a row in the{" "}
+              <span className="font-mono text-indigo-600">clients</span> table, and every
+              downstream record (agents, tasks, corrections, baselines) carries a{" "}
+              <span className="font-mono text-indigo-600">client_id</span>. The dashboard only
+              shows data for the active client. In this demo, the active client is hardcoded to{" "}
+              <strong>DoorDash</strong> so users see a single, focused account view.
+            </p>
+          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="h-2 w-2 rounded-full bg-teal-500" />
+                <h3 className="text-sm font-semibold text-gray-900">Single-tenant UI</h3>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                The header shows a static DoorDash badge. No client switcher is exposed.
+              </p>
+            </Card>
+            <Card className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="h-2 w-2 rounded-full bg-teal-500" />
+                <h3 className="text-sm font-semibold text-gray-900">Client-scoped queries</h3>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Every dashboard query filters by <span className="font-mono text-indigo-600">client_id</span>. Metrics never leak across tenants.
+              </p>
+            </Card>
+            <Card className="p-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="h-2 w-2 rounded-full bg-teal-500" />
+                <h3 className="text-sm font-semibold text-gray-900">User association</h3>
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                <span className="font-mono text-indigo-600">user_clients</span> links a Supabase user to their client. The demo account demo@zamp.ai is associated with DoorDash.
+              </p>
+            </Card>
+          </div>
+        </section>
+
+
+
         {/* Architecture */}
         <section>
           <SectionHeading id="architecture" title="System Architecture" />
@@ -546,6 +632,23 @@ function DocsPage() {
           <SectionHeading id="schema" title="Database Schema" />
 
           <div className="space-y-8">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 font-mono">clients</h3>
+              <p className="text-sm text-gray-500 mb-3">
+                Top-level tenant. Every account (e.g., DoorDash) gets one row. Demo seeded with{" "}
+                <span className="font-mono">slug = 'doordash'</span>.
+              </p>
+              <SchemaTable rows={CLIENTS_ROWS} />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 font-mono">user_clients</h3>
+              <p className="text-sm text-gray-500 mb-3">
+                Many-to-many link between Supabase users and clients. Controls which tenant a user sees on login.
+              </p>
+              <SchemaTable rows={USER_CLIENTS_ROWS} />
+            </div>
+
             <div>
               <h3 className="text-lg font-semibold text-gray-900 font-mono">agents</h3>
               <p className="text-sm text-gray-500 mb-3">
@@ -613,13 +716,23 @@ function DocsPage() {
 
             <div>
               <h3 className="text-base font-semibold text-gray-900 mb-3">
-                Step 2: Register Your Agent (one-time)
+                Step 2: Create the Client (one-time)
+              </h3>
+              <p className="text-sm text-gray-600 mb-3">
+                All data is scoped to a client. In production this is usually created during onboarding. In the demo, DoorDash already exists.
+              </p>
+              <CodeBlock code={CODE_CLIENT} />
+            </div>
+
+            <div>
+              <h3 className="text-base font-semibold text-gray-900 mb-3">
+                Step 3: Register Your Agent (one-time)
               </h3>
               <CodeBlock code={CODE_REGISTER} />
             </div>
 
             <div>
-              <h3 className="text-base font-semibold text-gray-900 mb-3">Step 3: Push Task Events</h3>
+              <h3 className="text-base font-semibold text-gray-900 mb-3">Step 4: Push Task Events</h3>
               <TabbedExamples />
             </div>
           </div>
