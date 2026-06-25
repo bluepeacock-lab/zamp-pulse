@@ -112,6 +112,7 @@ function AgentDetailPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [setupOpen, setSetupOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
