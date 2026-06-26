@@ -312,10 +312,17 @@ function DashboardContent({
   const generalized = periodCorrections.filter((c) => c.generalized).length;
   const genPct = totalCorrections ? (generalized / totalCorrections) * 100 : 0;
 
-  // Trend chart — 7-day rolling average for 30d/60d; raw for 7d
+  // Trend chart — 7-day rolling average for 30d/60d; raw for 7d.
+  // Drop the trailing day (partial) to avoid misleading drop-off.
   const rollingWindow = period === 7 ? 1 : 7;
-  const trendData = useMemo(() => dailyAtcr(periodTasks, rollingWindow), [periodTasks, rollingWindow]);
+  const trendData = useMemo(() => {
+    const series = dailyAtcr(periodTasks, rollingWindow);
+    return series.length > 1 ? series.slice(0, -1) : series;
+  }, [periodTasks, rollingWindow]);
   const showRawDots = period !== 7;
+  const latestAtcr = trendData.length ? trendData[trendData.length - 1].atcr : 0;
+  // Smart x-axis: aim for ~7 ticks regardless of period
+  const xTickInterval = Math.max(0, Math.floor(trendData.length / 7) - 1);
 
   const segments = [
     {
