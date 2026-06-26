@@ -691,6 +691,17 @@ function TrendTooltip({ active, payload, label }: any) {
   );
 }
 
+function SparkTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  return (
+    <div className="bg-zinc-900 text-white rounded px-2 py-1 text-[10px] shadow-lg">
+      <div className="font-medium">{formatShortDate(label)}</div>
+      <div>ATCR: {p.atcr.toFixed(1)}%</div>
+    </div>
+  );
+}
+
 function AgentCard({
   agent,
   tasks,
@@ -711,15 +722,29 @@ function AgentCard({
   const accuracy = accDen ? (completed / accDen) * 100 : 0;
   const escalation = total ? (escalated / total) * 100 : 0;
 
-  // May vs June ATCR (using full history for improvement flag)
-  const mayTasks = allTasks.filter((t) => new Date(t.created_at).getUTCMonth() === 4);
-  const juneTasks = allTasks.filter((t) => new Date(t.created_at).getUTCMonth() === 5);
-  const mayAtcr = computeAtcr(mayTasks);
-  const juneAtcr = computeAtcr(juneTasks);
-  const improving = juneAtcr > mayAtcr && juneTasks.length > 0 && mayTasks.length > 0;
+  // Week-over-week ATCR trend
+  const now = Date.now();
+  const lastWeek = allTasks.filter(
+    (t) => new Date(t.created_at).getTime() >= now - 7 * 86400000,
+  );
+  const priorWeek = allTasks.filter((t) => {
+    const ts = new Date(t.created_at).getTime();
+    return ts >= now - 14 * 86400000 && ts < now - 7 * 86400000;
+  });
+  const wowDelta = computeAtcr(lastWeek) - computeAtcr(priorWeek);
 
-  // Sparkline: use period tasks
-  const daily = dailyAtcr(tasks, 7);
+  // Status dot
+  const status =
+    atcr >= 90 ? { color: GREEN, label: "Healthy" }
+    : atcr >= 75 ? { color: AMBER, label: "Watch" }
+    : { color: RED, label: "At risk" };
+
+  // Sparkline: last 14 days, 7-day rolling, trim trailing partial day
+  const sparkSource = allTasks.filter(
+    (t) => new Date(t.created_at).getTime() >= now - 14 * 86400000,
+  );
+  const dailyAll = dailyAtcr(sparkSource, 7);
+  const daily = dailyAll.length > 1 ? dailyAll.slice(0, -1) : dailyAll;
 
   return (
     <button
@@ -727,33 +752,98 @@ function AgentCard({
       onClick={onClick}
       className="group text-left w-full bg-white rounded-xl shadow-sm p-5 cursor-pointer transition border border-zinc-200 hover:border-[#00C9A7] hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40"
     >
+      {/* Header: icon + name + status dot */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{agent.role_icon}</span>
-          <span className="text-lg font-semibold" style={{ color: GRAY_900 }}>{agent.name}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xl shrink-0">{agent.role_icon}</span>
+          <span className="text-base font-semibold truncate" style={{ color: GRAY_900 }}>
+            {agent.name}
+          </span>
         </div>
-        {improving && (
+        <div className="flex items-center gap-1.5 shrink-0" title={status.label}>
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
+          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: status.color }}>
+            {status.label}
+          </span>
+        </div>
+      </div>
+
+      {/* ATCR + WoW pill */}
+      <div className="flex items-baseline gap-2 mb-1">
+        <div className="text-3xl font-bold" style={{ color: colorForAtcr(atcr) }}>
+          {atcr.toFixed(1)}%
+        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: GRAY_500 }}>
+          ATCR
+        </span>
+        {priorWeek.length > 0 && lastWeek.length > 0 && (
           <span
-            className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{ backgroundColor: "#D1FAE5", color: "#047857" }}
+            className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded"
+            style={{
+              backgroundColor: wowDelta >= 0 ? "rgba(0,201,167,0.12)" : "rgba(239,68,68,0.1)",
+              color: wowDelta >= 0 ? TEAL : RED,
+            }}
           >
-            ▲ improving
+            {wowDelta >= 0 ? "▲ +" : "▼ "}{Math.abs(wowDelta).toFixed(1)}pp WoW
           </span>
         )}
       </div>
-      <div className="text-3xl font-bold mb-2" style={{ color: colorForAtcr(atcr) }}>
-        {atcr.toFixed(1)}%
+
+      {/* Sparkline w/ caption + goal line + axis hint */}
+      <div className="mt-3">
+        <div className="flex items-center justify-between text-[10px] mb-0.5" style={{ color: "#9CA3AF" }}>
+          <span className="uppercase tracking-wide font-medium">ATCR · last 14 days</span>
+          <span>Goal 90%</span>
+        </div>
+        <div style={{ width: "100%", height: 64 }}>
+          <ResponsiveContainer>
+            <LineChart data={daily} margin={{ top: 6, right: 4, left: 4, bottom: 0 }}>
+              <YAxis domain={[40, 100]} hide />
+              <XAxis dataKey="date" hide />
+              <ReferenceLine y={90} stroke={GREEN} strokeDasharray="3 3" strokeOpacity={0.4} />
+              <Tooltip content={<SparkTooltip />} cursor={{ stroke: GRAY_500, strokeOpacity: 0.2 }} />
+              <Line
+                type="monotone"
+                dataKey="atcr"
+                stroke={TEAL}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3, fill: TEAL }}
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
-      <div style={{ width: "100%", height: 60 }}>
-        <ResponsiveContainer>
-          <LineChart data={daily} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
-            <Line type="monotone" dataKey="atcr" stroke={TEAL} strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+
+      {/* Stat chips */}
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        <div className="bg-zinc-50 rounded-md px-2 py-1.5">
+          <div className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "#9CA3AF" }}>
+            Accuracy
+          </div>
+          <div className="text-sm font-bold" style={{ color: GRAY_900 }}>
+            {accuracy.toFixed(0)}%
+          </div>
+        </div>
+        <div className="bg-zinc-50 rounded-md px-2 py-1.5">
+          <div className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "#9CA3AF" }}>
+            Escalation
+          </div>
+          <div className="text-sm font-bold" style={{ color: GRAY_900 }}>
+            {escalation.toFixed(0)}%
+          </div>
+        </div>
+        <div className="bg-zinc-50 rounded-md px-2 py-1.5">
+          <div className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "#9CA3AF" }}>
+            Tasks
+          </div>
+          <div className="text-sm font-bold" style={{ color: GRAY_900 }}>
+            {total}
+          </div>
+        </div>
       </div>
-      <div className="text-sm mt-2" style={{ color: GRAY_500 }}>
-        Accuracy: {accuracy.toFixed(0)}% · Escalation: {escalation.toFixed(0)}% · Tasks: {total}
-      </div>
+
       <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEAL }}>
           View agent details
