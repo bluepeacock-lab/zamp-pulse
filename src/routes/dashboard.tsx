@@ -6,6 +6,7 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -311,10 +312,17 @@ function DashboardContent({
   const generalized = periodCorrections.filter((c) => c.generalized).length;
   const genPct = totalCorrections ? (generalized / totalCorrections) * 100 : 0;
 
-  // Trend chart — 7-day rolling average for 30d/60d; raw for 7d
+  // Trend chart — 7-day rolling average for 30d/60d; raw for 7d.
+  // Drop the trailing day (partial) to avoid misleading drop-off.
   const rollingWindow = period === 7 ? 1 : 7;
-  const trendData = useMemo(() => dailyAtcr(periodTasks, rollingWindow), [periodTasks, rollingWindow]);
+  const trendData = useMemo(() => {
+    const series = dailyAtcr(periodTasks, rollingWindow);
+    return series.length > 1 ? series.slice(0, -1) : series;
+  }, [periodTasks, rollingWindow]);
   const showRawDots = period !== 7;
+  const latestAtcr = trendData.length ? trendData[trendData.length - 1].atcr : 0;
+  // Smart x-axis: aim for ~7 ticks regardless of period
+  const xTickInterval = Math.max(0, Math.floor(trendData.length / 7) - 1);
 
   const segments = [
     {
@@ -519,16 +527,31 @@ function DashboardContent({
 
       {/* Trend chart */}
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
           <div>
-            <h3 className="text-sm font-semibold" style={{ color: GRAY_900 }}>
-              ATCR Trend Performance
-            </h3>
-            {showRawDots && (
-              <p className="text-xs mt-0.5" style={{ color: GRAY_500 }}>
-                7-day rolling average
-              </p>
-            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="text-sm font-semibold" style={{ color: GRAY_900 }}>
+                ATCR Trend
+              </h3>
+              <span
+                className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: latestAtcr >= 90 ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.12)",
+                  color: latestAtcr >= 90 ? GREEN : AMBER,
+                }}
+              >
+                Now {latestAtcr.toFixed(1)}%
+              </span>
+              <span
+                className="text-[11px] font-semibold"
+                style={{ color: trendDelta >= 0 ? TEAL : RED }}
+              >
+                {trendDelta >= 0 ? "▲ +" : "▼ "}{Math.abs(trendDelta).toFixed(1)}pp {periodLabel}
+              </span>
+            </div>
+            <p className="text-xs mt-1" style={{ color: GRAY_500 }}>
+              {showRawDots ? "7-day rolling average" : "Daily values"} · Last {periodDays} days · Trailing partial day excluded
+            </p>
           </div>
           <div className="flex items-center gap-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: GRAY_500 }}>
             <div className="flex items-center gap-1.5">
@@ -536,8 +559,8 @@ function DashboardContent({
               ATCR
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-0.5 border-t border-dashed" style={{ borderColor: "#9CA3AF" }} />
-              90% Goal
+              <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: "rgba(16,185,129,0.12)" }} />
+              Goal ≥ 90%
             </div>
           </div>
         </div>
@@ -546,37 +569,39 @@ function DashboardContent({
             <AreaChart data={trendData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="atcrFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={TEAL} stopOpacity={0.18} />
+                  <stop offset="0%" stopColor={TEAL} stopOpacity={0.22} />
                   <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fill: GRAY_500, fontSize: 12 }}
+                tick={{ fill: GRAY_500, fontSize: 11 }}
                 tickFormatter={formatShortDate}
                 axisLine={false}
                 tickLine={false}
+                interval={xTickInterval}
+                minTickGap={20}
+                tickMargin={8}
               />
               <YAxis
-                domain={[0, 100]}
-                tick={{ fill: GRAY_500, fontSize: 12 }}
+                domain={[40, 100]}
+                ticks={[40, 60, 80, 90, 100]}
+                tick={{ fill: GRAY_500, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `${v}%`}
+                width={40}
               />
               <Tooltip content={<TrendTooltip />} />
-              <ReferenceLine
-                y={90}
-                stroke="#9CA3AF"
-                strokeDasharray="4 4"
-              />
+              <ReferenceArea y1={90} y2={100} fill={GREEN} fillOpacity={0.06} />
+              <ReferenceLine y={90} stroke={GREEN} strokeDasharray="4 4" strokeOpacity={0.5} />
               {showRawDots && (
                 <Line
                   type="monotone"
                   dataKey="atcrRaw"
                   stroke="none"
-                  dot={{ r: 2.5, fill: GRAY_500, fillOpacity: 0.2, stroke: "none" }}
+                  dot={{ r: 2, fill: GRAY_500, fillOpacity: 0.25, stroke: "none" }}
                   activeDot={false}
                   isAnimationActive={false}
                 />
@@ -666,6 +691,17 @@ function TrendTooltip({ active, payload, label }: any) {
   );
 }
 
+function SparkTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0].payload;
+  return (
+    <div className="bg-zinc-900 text-white rounded px-2 py-1 text-[10px] shadow-lg">
+      <div className="font-medium">{formatShortDate(label)}</div>
+      <div>ATCR: {p.atcr.toFixed(1)}%</div>
+    </div>
+  );
+}
+
 function AgentCard({
   agent,
   tasks,
@@ -686,15 +722,31 @@ function AgentCard({
   const accuracy = accDen ? (completed / accDen) * 100 : 0;
   const escalation = total ? (escalated / total) * 100 : 0;
 
-  // May vs June ATCR (using full history for improvement flag)
-  const mayTasks = allTasks.filter((t) => new Date(t.created_at).getUTCMonth() === 4);
-  const juneTasks = allTasks.filter((t) => new Date(t.created_at).getUTCMonth() === 5);
-  const mayAtcr = computeAtcr(mayTasks);
-  const juneAtcr = computeAtcr(juneTasks);
-  const improving = juneAtcr > mayAtcr && juneTasks.length > 0 && mayTasks.length > 0;
+  // Anchor "now" to latest task date so demo data with stale dates still shows trends
+  const latestTs = allTasks.length
+    ? Math.max(...allTasks.map((t) => new Date(t.created_at).getTime()))
+    : Date.now();
+  const lastWeek = allTasks.filter(
+    (t) => new Date(t.created_at).getTime() >= latestTs - 7 * 86400000,
+  );
+  const priorWeek = allTasks.filter((t) => {
+    const ts = new Date(t.created_at).getTime();
+    return ts >= latestTs - 14 * 86400000 && ts < latestTs - 7 * 86400000;
+  });
+  const wowDelta = computeAtcr(lastWeek) - computeAtcr(priorWeek);
 
-  // Sparkline: use period tasks
-  const daily = dailyAtcr(tasks, 7);
+  // Status dot
+  const status =
+    atcr >= 90 ? { color: GREEN, label: "Healthy" }
+    : atcr >= 75 ? { color: AMBER, label: "Watch" }
+    : { color: RED, label: "At risk" };
+
+  // Sparkline: last 14 days relative to latest data, 7-day rolling, trim trailing partial day
+  const sparkSource = allTasks.filter(
+    (t) => new Date(t.created_at).getTime() >= latestTs - 14 * 86400000,
+  );
+  const dailyAll = dailyAtcr(sparkSource, 7);
+  const daily = dailyAll.length > 1 ? dailyAll.slice(0, -1) : dailyAll;
 
   return (
     <button
@@ -702,33 +754,98 @@ function AgentCard({
       onClick={onClick}
       className="group text-left w-full bg-white rounded-xl shadow-sm p-5 cursor-pointer transition border border-zinc-200 hover:border-[#00C9A7] hover:shadow-lg hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#00C9A7]/40"
     >
+      {/* Header: icon + name + status dot */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{agent.role_icon}</span>
-          <span className="text-lg font-semibold" style={{ color: GRAY_900 }}>{agent.name}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xl shrink-0">{agent.role_icon}</span>
+          <span className="text-base font-semibold truncate" style={{ color: GRAY_900 }}>
+            {agent.name}
+          </span>
         </div>
-        {improving && (
+        <div className="flex items-center gap-1.5 shrink-0" title={status.label}>
+          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }} />
+          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: status.color }}>
+            {status.label}
+          </span>
+        </div>
+      </div>
+
+      {/* ATCR + WoW pill */}
+      <div className="flex items-baseline gap-2 mb-1">
+        <div className="text-3xl font-bold" style={{ color: colorForAtcr(atcr) }}>
+          {atcr.toFixed(1)}%
+        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: GRAY_500 }}>
+          ATCR
+        </span>
+        {priorWeek.length > 0 && lastWeek.length > 0 && (
           <span
-            className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{ backgroundColor: "#D1FAE5", color: "#047857" }}
+            className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded"
+            style={{
+              backgroundColor: wowDelta >= 0 ? "rgba(0,201,167,0.12)" : "rgba(239,68,68,0.1)",
+              color: wowDelta >= 0 ? TEAL : RED,
+            }}
           >
-            ▲ improving
+            {wowDelta >= 0 ? "▲ +" : "▼ "}{Math.abs(wowDelta).toFixed(1)}pp WoW
           </span>
         )}
       </div>
-      <div className="text-3xl font-bold mb-2" style={{ color: colorForAtcr(atcr) }}>
-        {atcr.toFixed(1)}%
+
+      {/* Sparkline w/ caption + goal line + axis hint */}
+      <div className="mt-3">
+        <div className="flex items-center justify-between text-[10px] mb-0.5" style={{ color: "#9CA3AF" }}>
+          <span className="uppercase tracking-wide font-medium">ATCR · last 14 days</span>
+          <span>Goal 90%</span>
+        </div>
+        <div style={{ width: "100%", height: 64 }}>
+          <ResponsiveContainer>
+            <LineChart data={daily} margin={{ top: 6, right: 4, left: 4, bottom: 0 }}>
+              <YAxis domain={[40, 100]} hide />
+              <XAxis dataKey="date" hide />
+              <ReferenceLine y={90} stroke={GREEN} strokeDasharray="3 3" strokeOpacity={0.4} />
+              <Tooltip content={<SparkTooltip />} cursor={{ stroke: GRAY_500, strokeOpacity: 0.2 }} />
+              <Line
+                type="monotone"
+                dataKey="atcr"
+                stroke={TEAL}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3, fill: TEAL }}
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
-      <div style={{ width: "100%", height: 60 }}>
-        <ResponsiveContainer>
-          <LineChart data={daily} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
-            <Line type="monotone" dataKey="atcr" stroke={TEAL} strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+
+      {/* Stat chips */}
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        <div className="bg-zinc-50 rounded-md px-2 py-1.5">
+          <div className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "#9CA3AF" }}>
+            Accuracy
+          </div>
+          <div className="text-sm font-bold" style={{ color: GRAY_900 }}>
+            {accuracy.toFixed(0)}%
+          </div>
+        </div>
+        <div className="bg-zinc-50 rounded-md px-2 py-1.5">
+          <div className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "#9CA3AF" }}>
+            Escalation
+          </div>
+          <div className="text-sm font-bold" style={{ color: GRAY_900 }}>
+            {escalation.toFixed(0)}%
+          </div>
+        </div>
+        <div className="bg-zinc-50 rounded-md px-2 py-1.5">
+          <div className="text-[9px] uppercase tracking-wider font-semibold" style={{ color: "#9CA3AF" }}>
+            Tasks
+          </div>
+          <div className="text-sm font-bold" style={{ color: GRAY_900 }}>
+            {total}
+          </div>
+        </div>
       </div>
-      <div className="text-sm mt-2" style={{ color: GRAY_500 }}>
-        Accuracy: {accuracy.toFixed(0)}% · Escalation: {escalation.toFixed(0)}% · Tasks: {total}
-      </div>
+
       <div className="mt-4 pt-3 border-t border-zinc-100 flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: TEAL }}>
           View agent details
