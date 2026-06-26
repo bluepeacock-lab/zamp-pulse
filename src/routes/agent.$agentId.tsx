@@ -220,9 +220,9 @@ function AgentDetailPage() {
           agentId={agent.id}
           baseline={null}
           onClose={() => setSetupOpen(false)}
-          onSaved={() => {
+          onSaved={async () => {
             setSetupOpen(false);
-            setReloadKey((k) => k + 1);
+            await refetchBaseline();
           }}
         />
       )}
@@ -232,9 +232,9 @@ function AgentDetailPage() {
           agentId={agent.id}
           baseline={baseline}
           onClose={() => setEditOpen(false)}
-          onSaved={() => {
+          onSaved={async () => {
             setEditOpen(false);
-            setReloadKey((k) => k + 1);
+            await refetchBaseline();
           }}
         />
       )}
