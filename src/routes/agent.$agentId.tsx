@@ -146,6 +146,19 @@ function AgentDetailPage() {
     };
   }, [agentId, reloadKey]);
 
+  async function refetchBaseline() {
+    const { data, error: e } = await supabase
+      .from("baselines")
+      .select("*")
+      .eq("agent_id", agentId)
+      .maybeSingle();
+    if (e) {
+      setError(e.message);
+      return;
+    }
+    setBaseline((data as Baseline | null) ?? null);
+  }
+
   const loading = !error && (!agent || !tasks || !corrections || baseline === undefined);
 
   if (error) {
@@ -207,9 +220,9 @@ function AgentDetailPage() {
           agentId={agent.id}
           baseline={null}
           onClose={() => setSetupOpen(false)}
-          onSaved={() => {
+          onSaved={async () => {
             setSetupOpen(false);
-            setReloadKey((k) => k + 1);
+            await refetchBaseline();
           }}
         />
       )}
@@ -219,9 +232,9 @@ function AgentDetailPage() {
           agentId={agent.id}
           baseline={baseline}
           onClose={() => setEditOpen(false)}
-          onSaved={() => {
+          onSaved={async () => {
             setEditOpen(false);
-            setReloadKey((k) => k + 1);
+            await refetchBaseline();
           }}
         />
       )}
@@ -260,9 +273,15 @@ function AgentDetailContent({
   const total = tasks.length;
   const atcr = total ? (counts.completed / total) * 100 : 0;
 
-  // May vs June delta
-  const mayTasks = tasks.filter((t) => (t.ts_received || t.created_at).slice(0, 7) === "2026-05");
-  const junTasks = tasks.filter((t) => (t.ts_received || t.created_at).slice(0, 7) === "2026-06");
+  // May vs June 2026 delta
+  const mayTasks = tasks.filter((t) => {
+    const d = new Date(t.ts_received || t.created_at);
+    return d.getMonth() + 1 === 5 && d.getFullYear() === 2026;
+  });
+  const junTasks = tasks.filter((t) => {
+    const d = new Date(t.ts_received || t.created_at);
+    return d.getMonth() + 1 === 6 && d.getFullYear() === 2026;
+  });
   const mayAtcr = atcrOf(mayTasks);
   const junAtcr = atcrOf(junTasks);
   const delta = junAtcr - mayAtcr;
