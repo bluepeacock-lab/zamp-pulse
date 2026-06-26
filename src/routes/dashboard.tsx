@@ -722,14 +722,16 @@ function AgentCard({
   const accuracy = accDen ? (completed / accDen) * 100 : 0;
   const escalation = total ? (escalated / total) * 100 : 0;
 
-  // Week-over-week ATCR trend
-  const now = Date.now();
+  // Anchor "now" to latest task date so demo data with stale dates still shows trends
+  const latestTs = allTasks.length
+    ? Math.max(...allTasks.map((t) => new Date(t.created_at).getTime()))
+    : Date.now();
   const lastWeek = allTasks.filter(
-    (t) => new Date(t.created_at).getTime() >= now - 7 * 86400000,
+    (t) => new Date(t.created_at).getTime() >= latestTs - 7 * 86400000,
   );
   const priorWeek = allTasks.filter((t) => {
     const ts = new Date(t.created_at).getTime();
-    return ts >= now - 14 * 86400000 && ts < now - 7 * 86400000;
+    return ts >= latestTs - 14 * 86400000 && ts < latestTs - 7 * 86400000;
   });
   const wowDelta = computeAtcr(lastWeek) - computeAtcr(priorWeek);
 
@@ -739,9 +741,9 @@ function AgentCard({
     : atcr >= 75 ? { color: AMBER, label: "Watch" }
     : { color: RED, label: "At risk" };
 
-  // Sparkline: last 14 days, 7-day rolling, trim trailing partial day
+  // Sparkline: last 14 days relative to latest data, 7-day rolling, trim trailing partial day
   const sparkSource = allTasks.filter(
-    (t) => new Date(t.created_at).getTime() >= now - 14 * 86400000,
+    (t) => new Date(t.created_at).getTime() >= latestTs - 14 * 86400000,
   );
   const dailyAll = dailyAtcr(sparkSource, 7);
   const daily = dailyAll.length > 1 ? dailyAll.slice(0, -1) : dailyAll;
