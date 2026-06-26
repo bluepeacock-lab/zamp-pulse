@@ -734,12 +734,14 @@ type FieldKey = (typeof FIELD_DEFS)[number]["key"];
 function BaselineModal({
   mode,
   agentId,
+  clientId,
   baseline,
   onClose,
   onSaved,
 }: {
   mode: "create" | "edit";
   agentId: string;
+  clientId: string | null;
   baseline: Baseline | null;
   onClose: () => void;
   onSaved: () => void;
@@ -782,7 +784,7 @@ function BaselineModal({
           throw new Error(`Please enter a valid number for "${f.label}".`);
         }
       }
-      const payload = {
+      const payload: Record<string, unknown> = {
         agent_id: agentId,
         workflow_type: baseline?.workflow_type ?? "default",
         tasks_per_week: num("tasks_per_week"),
@@ -793,11 +795,12 @@ function BaselineModal({
         is_estimated: Object.values(unsure).some(Boolean),
         updated_at: new Date().toISOString(),
       };
+      if (clientId) payload.client_id = clientId;
       if (mode === "edit" && baseline) {
         const { error } = await supabase.from("baselines").update(payload).eq("id", baseline.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("baselines").insert(payload);
+        const { error } = await supabase.from("baselines").insert(payload as any);
         if (error) throw error;
       }
       onSaved();
@@ -807,6 +810,7 @@ function BaselineModal({
       setSaving(false);
     }
   }
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={onClose}>
