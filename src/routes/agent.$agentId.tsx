@@ -373,6 +373,14 @@ function AgentDetailContent({
   const errorsPrevented = baseline ? (autonomousTasks * baseline.error_rate_pct) / 100 : 0;
   const errorCostSaved = baseline ? errorsPrevented * baseline.cost_per_error : 0;
 
+  // ROI period (date range of tasks included in calculation)
+  const taskDates = tasks.map((t) => t.ts_received || t.created_at).filter(Boolean).sort();
+  const roiStart = taskDates[0];
+  const roiEnd = taskDates[taskDates.length - 1];
+  const roiDays = roiStart && roiEnd
+    ? Math.max(1, Math.round((new Date(roiEnd).getTime() - new Date(roiStart).getTime()) / 86400000) + 1)
+    : 0;
+
   return (
     <div className="space-y-4">
       <Link
@@ -437,20 +445,29 @@ function AgentDetailContent({
           className="bg-white rounded-xl shadow-sm p-6 border-l-4"
           style={{ borderColor: TEAL }}
         >
-          <div className="flex items-baseline gap-2 mb-4">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mb-4">
             <div className="font-semibold" style={{ color: GRAY_900 }}>💰 ROI Summary</div>
             <div className="text-sm" style={{ color: GRAY_500 }}>(based on your process baseline)</div>
+            {roiStart && roiEnd && (
+              <div
+                className="text-xs font-medium px-2 py-0.5 rounded-full ml-auto"
+                style={{ backgroundColor: "#E6FAF6", color: "#047857" }}
+                title={`${autonomousTasks} autonomous tasks across this window`}
+              >
+                {fmtFullDate(roiStart)} – {fmtFullDate(roiEnd)} · {roiDays} days
+              </div>
+            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
               <div className="text-xs uppercase tracking-wider" style={{ color: GRAY_500 }}>Hours Saved</div>
               <div className="text-2xl font-bold mt-1" style={{ color: GRAY_900 }}>{hoursSaved.toFixed(1)} hrs</div>
-              <div className="text-xs" style={{ color: GRAY_500 }}>this period</div>
+              <div className="text-xs" style={{ color: GRAY_500 }}>over last {roiDays} days</div>
             </div>
             <div>
               <div className="text-xs uppercase tracking-wider" style={{ color: GRAY_500 }}>Cost Saved</div>
               <div className="text-2xl font-bold mt-1" style={{ color: GRAY_900 }}>${Math.round(costSaved).toLocaleString()}</div>
-              <div className="text-xs" style={{ color: GRAY_500 }}>this period</div>
+              <div className="text-xs" style={{ color: GRAY_500 }}>over last {roiDays} days</div>
             </div>
             <div>
               <div className="text-xs uppercase tracking-wider" style={{ color: GRAY_500 }}>Errors Prevented</div>
@@ -460,7 +477,7 @@ function AgentDetailContent({
           </div>
           <div className="flex items-end justify-between gap-4">
             <div className="text-xs" style={{ color: GRAY_400 }}>
-              Calculated: {autonomousTasks} × {Number(baseline.minutes_per_task)} min ÷ 60 = hours. At ${Number(baseline.hourly_cost)}/hr. Baseline set: {fmtFullDate(baseline.created_at)}.
+              Window: {roiStart ? fmtFullDate(roiStart) : "—"} → {roiEnd ? fmtFullDate(roiEnd) : "—"} ({roiDays} days, {autonomousTasks} autonomous tasks). {autonomousTasks} × {Number(baseline.minutes_per_task)} min ÷ 60 = hours. At ${Number(baseline.hourly_cost)}/hr. Baseline set: {fmtFullDate(baseline.created_at)}.
             </div>
             <button
               onClick={onEdit}
