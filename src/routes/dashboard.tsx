@@ -585,13 +585,13 @@ function DashboardContent({
                 tickMargin={8}
               />
               <YAxis
-                domain={[50, 100]}
-                ticks={[50, 60, 70, 80, 90, 100]}
+                domain={[0, 100]}
+                ticks={[0, 20, 40, 60, 80, 100]}
                 tick={{ fill: GRAY_500, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `${v}%`}
-                width={40}
+                width={44}
               />
               <Tooltip content={<TrendTooltip />} />
               <ReferenceArea y1={90} y2={100} fill={GREEN} fillOpacity={0.06} />
