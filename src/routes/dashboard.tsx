@@ -527,16 +527,31 @@ function DashboardContent({
 
       {/* Trend chart */}
       <div className="bg-white rounded-2xl border border-zinc-200 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <div className="flex items-start justify-between mb-4 flex-wrap gap-3">
           <div>
-            <h3 className="text-sm font-semibold" style={{ color: GRAY_900 }}>
-              ATCR Trend Performance
-            </h3>
-            {showRawDots && (
-              <p className="text-xs mt-0.5" style={{ color: GRAY_500 }}>
-                7-day rolling average
-              </p>
-            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="text-sm font-semibold" style={{ color: GRAY_900 }}>
+                ATCR Trend
+              </h3>
+              <span
+                className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: latestAtcr >= 90 ? "rgba(16,185,129,0.1)" : "rgba(245,158,11,0.12)",
+                  color: latestAtcr >= 90 ? GREEN : AMBER,
+                }}
+              >
+                Now {latestAtcr.toFixed(1)}%
+              </span>
+              <span
+                className="text-[11px] font-semibold"
+                style={{ color: trendDelta >= 0 ? TEAL : RED }}
+              >
+                {trendDelta >= 0 ? "▲ +" : "▼ "}{Math.abs(trendDelta).toFixed(1)}pp {periodLabel}
+              </span>
+            </div>
+            <p className="text-xs mt-1" style={{ color: GRAY_500 }}>
+              {showRawDots ? "7-day rolling average" : "Daily values"} · Last {periodDays} days · Trailing partial day excluded
+            </p>
           </div>
           <div className="flex items-center gap-4 text-[11px] font-medium uppercase tracking-wider" style={{ color: GRAY_500 }}>
             <div className="flex items-center gap-1.5">
@@ -544,8 +559,8 @@ function DashboardContent({
               ATCR
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-0.5 border-t border-dashed" style={{ borderColor: "#9CA3AF" }} />
-              90% Goal
+              <div className="w-3 h-2 rounded-sm" style={{ backgroundColor: "rgba(16,185,129,0.12)" }} />
+              Goal ≥ 90%
             </div>
           </div>
         </div>
@@ -554,37 +569,39 @@ function DashboardContent({
             <AreaChart data={trendData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="atcrFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={TEAL} stopOpacity={0.18} />
+                  <stop offset="0%" stopColor={TEAL} stopOpacity={0.22} />
                   <stop offset="100%" stopColor={TEAL} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#F0F0F0" vertical={false} />
               <XAxis
                 dataKey="date"
-                tick={{ fill: GRAY_500, fontSize: 12 }}
+                tick={{ fill: GRAY_500, fontSize: 11 }}
                 tickFormatter={formatShortDate}
                 axisLine={false}
                 tickLine={false}
+                interval={xTickInterval}
+                minTickGap={20}
+                tickMargin={8}
               />
               <YAxis
-                domain={[0, 100]}
-                tick={{ fill: GRAY_500, fontSize: 12 }}
+                domain={[40, 100]}
+                ticks={[40, 60, 80, 90, 100]}
+                tick={{ fill: GRAY_500, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `${v}%`}
+                width={40}
               />
               <Tooltip content={<TrendTooltip />} />
-              <ReferenceLine
-                y={90}
-                stroke="#9CA3AF"
-                strokeDasharray="4 4"
-              />
+              <ReferenceArea y1={90} y2={100} fill={GREEN} fillOpacity={0.06} />
+              <ReferenceLine y={90} stroke={GREEN} strokeDasharray="4 4" strokeOpacity={0.5} />
               {showRawDots && (
                 <Line
                   type="monotone"
                   dataKey="atcrRaw"
                   stroke="none"
-                  dot={{ r: 2.5, fill: GRAY_500, fillOpacity: 0.2, stroke: "none" }}
+                  dot={{ r: 2, fill: GRAY_500, fillOpacity: 0.25, stroke: "none" }}
                   activeDot={false}
                   isAnimationActive={false}
                 />
