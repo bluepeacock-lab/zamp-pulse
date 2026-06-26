@@ -585,8 +585,8 @@ function DashboardContent({
                 tickMargin={8}
               />
               <YAxis
-                domain={[40, 100]}
-                ticks={[40, 60, 80, 90, 100]}
+                domain={[50, 100]}
+                ticks={[50, 60, 70, 80, 90, 100]}
                 tick={{ fill: GRAY_500, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
