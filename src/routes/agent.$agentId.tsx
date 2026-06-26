@@ -36,7 +36,9 @@ type Agent = {
   name: string;
   role_icon: string;
   status: string | null;
+  client_id: string | null;
 };
+
 type TaskEvent = {
   id: string;
   agent_id: string;
