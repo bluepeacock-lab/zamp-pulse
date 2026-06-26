@@ -585,8 +585,8 @@ function DashboardContent({
                 tickMargin={8}
               />
               <YAxis
-                domain={[40, 100]}
-                ticks={[40, 60, 80, 90, 100]}
+                domain={[50, 100]}
+                ticks={[50, 60, 70, 80, 90, 100]}
                 tick={{ fill: GRAY_500, fontSize: 11 }}
                 axisLine={false}
                 tickLine={false}
@@ -797,11 +797,28 @@ function AgentCard({
           <span className="uppercase tracking-wide font-medium">ATCR · last 14 days</span>
           <span>Goal 90%</span>
         </div>
-        <div style={{ width: "100%", height: 64 }}>
+        <div style={{ width: "100%", height: 90 }}>
           <ResponsiveContainer>
-            <LineChart data={daily} margin={{ top: 6, right: 4, left: 4, bottom: 0 }}>
-              <YAxis domain={[40, 100]} hide />
-              <XAxis dataKey="date" hide />
+            <LineChart data={daily} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
+              <YAxis
+                domain={[50, 100]}
+                ticks={[50, 100]}
+                tick={{ fill: "#9CA3AF", fontSize: 9 }}
+                tickFormatter={(v) => `${v}%`}
+                axisLine={false}
+                tickLine={false}
+                width={28}
+              />
+              <XAxis
+                dataKey="date"
+                tick={{ fill: "#9CA3AF", fontSize: 9 }}
+                tickFormatter={formatShortDate}
+                axisLine={false}
+                tickLine={false}
+                interval="preserveStartEnd"
+                ticks={daily.length ? [daily[0].date, daily[daily.length - 1].date] : []}
+                tickMargin={4}
+              />
               <ReferenceLine y={90} stroke={GREEN} strokeDasharray="3 3" strokeOpacity={0.4} />
               <Tooltip content={<SparkTooltip />} cursor={{ stroke: GRAY_500, strokeOpacity: 0.2 }} />
               <Line
