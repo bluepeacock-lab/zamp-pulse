@@ -207,6 +207,7 @@ function AgentDetailPage() {
         <BaselineModal
           mode="create"
           agentId={agent.id}
+          clientId={agent.client_id}
           baseline={null}
           onClose={() => setSetupOpen(false)}
           onSaved={() => {
@@ -219,6 +220,7 @@ function AgentDetailPage() {
         <BaselineModal
           mode="edit"
           agentId={agent.id}
+          clientId={agent.client_id}
           baseline={baseline}
           onClose={() => setEditOpen(false)}
           onSaved={() => {
@@ -227,6 +229,7 @@ function AgentDetailPage() {
           }}
         />
       )}
+
     </Layout>
   );
 }
