@@ -373,6 +373,14 @@ function AgentDetailContent({
   const errorsPrevented = baseline ? (autonomousTasks * baseline.error_rate_pct) / 100 : 0;
   const errorCostSaved = baseline ? errorsPrevented * baseline.cost_per_error : 0;
 
+  // ROI period (date range of tasks included in calculation)
+  const taskDates = tasks.map((t) => t.ts_received || t.created_at).filter(Boolean).sort();
+  const roiStart = taskDates[0];
+  const roiEnd = taskDates[taskDates.length - 1];
+  const roiDays = roiStart && roiEnd
+    ? Math.max(1, Math.round((new Date(roiEnd).getTime() - new Date(roiStart).getTime()) / 86400000) + 1)
+    : 0;
+
   return (
     <div className="space-y-4">
       <Link
