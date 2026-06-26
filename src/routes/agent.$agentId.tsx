@@ -146,6 +146,19 @@ function AgentDetailPage() {
     };
   }, [agentId, reloadKey]);
 
+  async function refetchBaseline() {
+    const { data, error: e } = await supabase
+      .from("baselines")
+      .select("*")
+      .eq("agent_id", agentId)
+      .maybeSingle();
+    if (e) {
+      setError(e.message);
+      return;
+    }
+    setBaseline((data as Baseline | null) ?? null);
+  }
+
   const loading = !error && (!agent || !tasks || !corrections || baseline === undefined);
 
   if (error) {
