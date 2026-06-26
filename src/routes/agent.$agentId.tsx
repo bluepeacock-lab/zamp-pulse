@@ -273,9 +273,15 @@ function AgentDetailContent({
   const total = tasks.length;
   const atcr = total ? (counts.completed / total) * 100 : 0;
 
-  // May vs June delta
-  const mayTasks = tasks.filter((t) => (t.ts_received || t.created_at).slice(0, 7) === "2026-05");
-  const junTasks = tasks.filter((t) => (t.ts_received || t.created_at).slice(0, 7) === "2026-06");
+  // May vs June 2026 delta
+  const mayTasks = tasks.filter((t) => {
+    const d = new Date(t.ts_received || t.created_at);
+    return d.getMonth() + 1 === 5 && d.getFullYear() === 2026;
+  });
+  const junTasks = tasks.filter((t) => {
+    const d = new Date(t.ts_received || t.created_at);
+    return d.getMonth() + 1 === 6 && d.getFullYear() === 2026;
+  });
   const mayAtcr = atcrOf(mayTasks);
   const junAtcr = atcrOf(junTasks);
   const delta = junAtcr - mayAtcr;
