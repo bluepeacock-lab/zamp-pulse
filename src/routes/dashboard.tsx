@@ -801,13 +801,13 @@ function AgentCard({
           <ResponsiveContainer>
             <LineChart data={daily} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
               <YAxis
-                domain={[50, 100]}
-                ticks={[50, 100]}
+                domain={[0, 100]}
+                ticks={[0, 50, 100]}
                 tick={{ fill: "#9CA3AF", fontSize: 9 }}
                 tickFormatter={(v) => `${v}%`}
                 axisLine={false}
                 tickLine={false}
-                width={28}
+                width={34}
               />
               <XAxis
                 dataKey="date"
